@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Slack Water — a story-driven 2D fishing game for the NSW coast. Chapter 1 vertical slice.",
+  "description": "Slack Water \u2014 a story-driven 2D fishing game for the NSW coast. Chapter 1 vertical slice.",
   "scripts": {
     "dev": "vite",
     "prebuild": "node --experimental-strip-types tools/bake-icons.ts",
@@ -15,6 +15,7 @@
     "smoke": "node tools/smoke.mjs",
     "rig": "node --experimental-strip-types tools/rig-preview.ts",
     "offline": "node tools/offline.mjs",
+    "sw": "node tools/sw-update.mjs",
     "play": "node tools/play.mjs"
   },
   "dependencies": {

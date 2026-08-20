@@ -147,14 +147,26 @@ async function boot(): Promise<void> {
 /**
  * §12 — the game must run fully offline after first load. Registered after the
  * first frame so it never competes with boot for bandwidth.
+ *
+ * `updateViaCache: 'none'` keeps the HTTP cache out of the worker's own update
+ * check: the worker script is the one file that must always be compared
+ * against the network, or a new build can never take over.
  */
 function registerServiceWorker(): void {
   if (!__ENABLE_SW__ || !import.meta.env.PROD || !('serviceWorker' in navigator)) return
   const base = new URL(import.meta.env.BASE_URL, location.href)
   const url = new URL(`sw.js?v=${__BUILD_ID__}`, base)
-  navigator.serviceWorker.register(url, { scope: base.pathname }).catch((err) => {
-    console.warn('[slack-water] service worker registration failed', err)
-  })
+  navigator.serviceWorker
+    .register(url, { scope: base.pathname, updateViaCache: 'none' })
+    .then((reg) => {
+      // A phone left on the same tab for days would otherwise never look.
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) reg.update().catch(() => {})
+      })
+    })
+    .catch((err) => {
+      console.warn('[slack-water] service worker registration failed', err)
+    })
 }
 
 boot().catch((err) => {

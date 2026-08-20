@@ -1,6 +1,8 @@
 import { gameStore, useGame } from '../engine/store.ts'
 import type { Tier } from '../engine/quality.ts'
 
+declare const __BUILD_ID__: string
+
 const TIERS: (Tier | null)[] = [null, 'high', 'mid', 'low']
 
 /**
@@ -54,6 +56,10 @@ export function Settings({ onClose }: { onClose: () => void }) {
       <button data-interactive onClick={onClose}>
         Done
       </button>
+
+      {/* So a player on a stale cache can say which build they are actually
+          running, rather than us guessing from a screenshot. */}
+      <p className="build">Build {__BUILD_ID__}</p>
     </div>
   )
 }
