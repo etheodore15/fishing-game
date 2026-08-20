@@ -1,4 +1,4 @@
-import { Application, Container, RenderTexture, Sprite, Texture } from 'pixi.js'
+import { Application, Container, RenderTexture, Sprite, Texture, Ticker } from 'pixi.js'
 import type { QualitySettings } from '../engine/quality.ts'
 import { paletteAt } from '../art/palettes.ts'
 import { PrintFilter, SubsurfaceFilter, SurfaceFilter, MAX_FOAM_SOURCES } from './filters.ts'
@@ -44,6 +44,8 @@ export class Stage {
   private root = new Container()
 
   private readonly palette = new Float32Array(18)
+  /** Reused across frames — three object literals a frame is three too many. */
+  private readonly renderOpts = { container: null as unknown as Container, target: null as unknown as RenderTexture, clear: true }
   private readonly foamData = new Float32Array(MAX_FOAM_SOURCES * 3)
   private foamCount = 0
   private quality!: QualitySettings
@@ -69,6 +71,14 @@ export class Stage {
       resolution: Math.min(globalThis.devicePixelRatio || 1, 2),
       resizeTo: canvas.parentElement ?? undefined,
     })
+    // §9 puts one authoritative clock in charge, and PixiJS's own tickers are
+    // a second one. They are also the single largest allocator in the frame,
+    // which matters when §11 asks for a render loop that allocates nothing.
+    Ticker.shared.autoStart = false
+    Ticker.shared.stop()
+    Ticker.system.autoStart = false
+    Ticker.system.stop()
+
     this.app.stage.addChild(this.root)
     this.buildTargets()
     this.app.renderer.on('resize', this.onResize)
@@ -166,7 +176,10 @@ export class Stage {
     const vp = this.viewport
 
     // 1. underwater scene, offscreen
-    renderer.render({ container: this.layers.underwater, target: this.underwaterRT, clear: true })
+    const opts = this.renderOpts
+    opts.container = this.layers.underwater
+    opts.target = this.underwaterRT
+    renderer.render(opts)
 
     // 2. surface row, ping-ponged so foam can accumulate and decay
     const su = this.surfaceFilter.uniforms
@@ -181,7 +194,9 @@ export class Stage {
     const src = this.foamIndex
     const dst = src ^ 1
     this.foamSprite.texture = this.foam[src] as unknown as Texture
-    renderer.render({ container: this.foamSprite, target: this.foam[dst], clear: true })
+    opts.container = this.foamSprite as unknown as Container
+    opts.target = this.foam[dst]
+    renderer.render(opts)
     this.foamIndex = dst
     this.subsurfaceFilter.setSurfaceTexture(this.foam[dst] as unknown as Texture)
 

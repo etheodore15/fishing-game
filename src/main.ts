@@ -1,3 +1,5 @@
+declare const __BUILD_ID__: string
+
 import { createRoot } from 'react-dom/client'
 import { createElement } from 'react'
 import './ui/fonts.css'
@@ -10,6 +12,7 @@ import { gameStore } from './engine/store.ts'
 import { Stage } from './render/stage.ts'
 import { World } from './sim/world.ts'
 import { chapter } from './content/index.ts'
+import { applySave, autosave, load } from './persist.ts'
 import { App } from './ui/App.tsx'
 
 interface Debug {
@@ -29,6 +32,11 @@ async function boot(): Promise<void> {
   const ch = chapter('ch1-estuary')
   const reduced = prefersReducedMotion()
   gameStore.getState().setSettings({ reducedMotion: reduced })
+
+  // The save is read before anything is built: a returning player's restored
+  // pages and settings have to be in place before the first frame.
+  const saved = await load()
+  if (saved) applySave(saved)
 
   const quality = new Quality()
   const stage = new Stage()
@@ -57,6 +65,10 @@ async function boot(): Promise<void> {
   canvas.addEventListener('pointerdown', startAudio, { once: true })
   gameStore.subscribe((s, prev) => {
     if (s.settings.audio !== prev.settings.audio) world.audio.setEnabled(s.settings.audio)
+    // A manual tier ends the automatic probe: the player has overruled it.
+    if (s.settings.tierOverride !== prev.settings.tierOverride && s.settings.tierOverride) {
+      quality.force(s.settings.tierOverride)
+    }
   })
 
   const loop = new GameLoop(clock, {
@@ -114,11 +126,33 @@ async function boot(): Promise<void> {
   gameStore.getState().hydrate({ ready: true })
 
   createRoot(overlay).render(createElement(App, { world }))
+  autosave()
+  registerServiceWorker()
+
+  // §9: reduced motion is a live system setting, not a boot-time reading.
+  const motionQuery = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)')
+  motionQuery?.addEventListener('change', (e) => {
+    gameStore.getState().setSettings({ reducedMotion: e.matches })
+    stage.setReducedMotion(e.matches)
+  })
 
   // A backgrounded tab must not accumulate simulated time it never rendered.
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) loop.stop()
     else loop.start()
+  })
+}
+
+/**
+ * §12 — the game must run fully offline after first load. Registered after the
+ * first frame so it never competes with boot for bandwidth.
+ */
+function registerServiceWorker(): void {
+  if (!import.meta.env.PROD || !('serviceWorker' in navigator)) return
+  const base = new URL(import.meta.env.BASE_URL, location.href)
+  const url = new URL(`sw.js?v=${__BUILD_ID__}`, base)
+  navigator.serviceWorker.register(url, { scope: base.pathname }).catch((err) => {
+    console.warn('[slack-water] service worker registration failed', err)
   })
 }
 

@@ -113,6 +113,7 @@ export class FishRenderer {
     omega: 1, ampScale: 1, turnBias: 0, phase: 0, finPhase: 0,
   }
   private readonly seen = new Set<number>()
+  private readonly retire: number[] = []
 
   constructor() {
     this.view.eventMode = 'none'
@@ -145,12 +146,19 @@ export class FishRenderer {
       fm.setScene(palette, lightX, lightY, lightLevel, alpha)
     }
 
-    for (const [id, fm] of this.meshes) {
+    // Iterating keys rather than entries: `for (const [id, fm] of map)`
+    // allocates a two-element array per entry, every frame.
+    for (const id of this.meshes.keys()) {
       if (this.seen.has(id)) continue
+      this.retire.push(id)
+    }
+    for (const id of this.retire) {
+      const fm = this.meshes.get(id)!
       this.meshes.delete(id)
       this.view.removeChild(fm.mesh)
       this.pool.push(fm)
     }
+    this.retire.length = 0
   }
 
   destroy(): void {

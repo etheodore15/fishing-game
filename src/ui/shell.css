@@ -313,10 +313,15 @@ html, body {
   opacity: 0.7;
 }
 
-.journal-open {
+.corner-nav {
   position: absolute;
   top: calc(var(--safe-t) + 12px);
   right: calc(var(--safe-r) + var(--edge));
+  display: flex;
+  gap: 0.5rem;
+}
+
+.corner-nav button {
   font-family: var(--font-utility);
   font-size: 0.66rem;
   letter-spacing: 0.16em;
@@ -329,4 +334,49 @@ html, body {
   padding: 0 0.9rem;
   opacity: 0.75;
   cursor: pointer;
+}
+
+/* ---- settings ---- */
+.settings h2 {
+  font-family: var(--font-display);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  font-size: 1.2rem;
+  margin: 0 0 1.2rem;
+}
+
+.settings .row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.4rem;
+  margin-bottom: 0.9rem;
+  font-family: var(--font-utility);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.settings .tiers { display: flex; gap: 0.35rem; }
+
+.settings .tiers button {
+  padding: 0 0.6rem;
+  min-width: 44px;
+  font-size: 0.6rem;
+}
+
+.settings .tiers button.on {
+  background: #12181c;
+  color: var(--paper);
+}
+
+.settings .note {
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  opacity: 0.7;
+  margin: 1rem 0 1.4rem;
+  max-width: 26rem;
+  text-align: left;
 }

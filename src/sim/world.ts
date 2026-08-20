@@ -84,6 +84,8 @@ export class World {
   private driftAccumulator = 0
   private bubbleAccumulator = 0
   private readonly rand = rng(2027)
+  /** Bound once; see the note in sim/trip.ts about per-step closures. */
+  private readonly surfaceAt = (x: number) => this.water.surfaceY(x, this.lastSimTime)
 
   private readonly scene: SceneUniforms = {
     timeSec: 0, windKt: 10, windDir: 1, hourOfDay: 6,
@@ -218,9 +220,8 @@ export class World {
     for (const f of this.fish) f.update(dt, this.water, this.conditions, this.lure)
 
     this.emitAmbient(dt, t)
-    const surfaceAt = (x: number) => this.water.surfaceY(x, t)
-    this.surfaceFx.update(dt, this.wind.x, this.wind.speedKt, surfaceAt)
-    this.subFx.update(dt, 0, 0, surfaceAt)
+    this.surfaceFx.update(dt, this.wind.x, this.wind.speedKt, this.surfaceAt)
+    this.subFx.update(dt, 0, 0, this.surfaceAt)
 
     this.hudAccumulator += dt
     if (this.hudAccumulator >= 0.25) {

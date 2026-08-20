@@ -50,6 +50,20 @@ export class Trip {
   private sinceLanded = 0
   private readonly rand = rng(6607)
 
+  /**
+   * Allocated once, not per step.
+   *
+   * §11 asks for a render loop that allocates nothing, and a fresh closure or
+   * handler object sixty times a second is exactly the kind of thing that does
+   * not show up until a phone starts dropping frames to collect it.
+   */
+  private readonly surfaceAt: (x: number) => number
+  private readonly fightEvents: {
+    onHeadshake(power: number): void
+    onSurge(power: number): void
+    onOutcome(outcome: FightOutcome, fish: Fish): void
+  }
+
   constructor(
     private readonly lure: LureState,
     private readonly water: WaterField,
@@ -58,6 +72,16 @@ export class Trip {
     private readonly events: TripEvents,
   ) {
     this.line.reset(BUTT_X, -1, BUTT_X + 0.2, -1)
+    this.surfaceAt = (x) => this.cond.surfaceTop(x)
+    this.fightEvents = {
+      onHeadshake: (p) => {
+        // The rod tip rings — the head-shake is felt through the blank (§8.4).
+        this.rod.strike((this.rand() - 0.5) * 0.09 * p, -0.07 * p)
+        this.events.onHeadshake(p)
+      },
+      onSurge: (p) => this.events.onSurge(p),
+      onOutcome: (outcome, fish) => this.resolve(outcome, fish),
+    }
   }
 
   private setPhase(p: Phase): void {
@@ -131,7 +155,7 @@ export class Trip {
   }
 
   step(dt: number, t: number, windKt: number, windDirX: number): void {
-    const surfaceAt = (x: number) => this.cond.surfaceY(x, t)
+    const surfaceAt = this.surfaceAt
 
     switch (this.phase) {
       case 'cast':
@@ -348,15 +372,7 @@ export class Trip {
       return
     }
 
-    this.fight.step(dt, this.holding, this.rod.tipX, this.rod.tipY, this.water, this.cond, {
-      onHeadshake: (p) => {
-        // The rod tip rings — the head-shake is felt through the blank (§8.4).
-        this.rod.strike((this.rand() - 0.5) * 0.09 * p, -0.07 * p)
-        this.events.onHeadshake(p)
-      },
-      onSurge: (p) => this.events.onSurge(p),
-      onOutcome: (outcome, landedFish) => this.resolve(outcome, landedFish),
-    })
+    this.fight.step(dt, this.holding, this.rod.tipX, this.rod.tipY, this.water, this.cond, this.fightEvents)
 
     this.lure.x = fish.x
     this.lure.y = fish.y

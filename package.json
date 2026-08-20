@@ -3,17 +3,19 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Slack Water \u2014 a story-driven 2D fishing game for the NSW coast. Chapter 1 vertical slice.",
+  "description": "Slack Water — a story-driven 2D fishing game for the NSW coast. Chapter 1 vertical slice.",
   "scripts": {
     "dev": "vite",
-    "prebuild": "node --experimental-strip-types tools/bake-atlas.ts",
+    "prebuild": "node --experimental-strip-types tools/bake-icons.ts",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "bake": "node --experimental-strip-types tools/bake-atlas.ts",
+    "bake": "node --experimental-strip-types tools/bake-icons.ts",
     "test": "node --test --experimental-strip-types \"tests/**/*.test.ts\"",
     "smoke": "node tools/smoke.mjs",
-    "rig": "node --experimental-strip-types tools/rig-preview.ts"
+    "rig": "node --experimental-strip-types tools/rig-preview.ts",
+    "offline": "node tools/offline.mjs",
+    "play": "node tools/play.mjs"
   },
   "dependencies": {
     "howler": "^2.2.4",
@@ -31,6 +33,7 @@
     "@vitejs/plugin-react": "^4.3.4",
     "playwright": "^1.62.1",
     "typescript": "^5.9.2",
-    "vite": "^6.3.5"
+    "vite": "^6.3.5",
+    "wait-on": "^8.0.5"
   }
 }
