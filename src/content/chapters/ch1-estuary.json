@@ -1,0 +1,18 @@
+{
+  "id": "ch1-estuary",
+  "title": "The Flats",
+  "water": "estuary",
+  "bathymetry": "seeded-procedural:1187",
+  "structures": ["weed-edge", "sand-drop", "oyster-racks"],
+  "species": ["dusky-flathead"],
+  "tideCycleMinutes": 360,
+  "pages": ["p001", "p002", "p003"],
+  "startHour": 6.8,
+  "wind": { "baseKt": 12, "baseDirDeg": 45 },
+  "unlocks": [
+    {
+      "pageId": "p003",
+      "require": { "species": "dusky-flathead", "tideState": "run-out", "minCm": 45 }
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "id": "dusky-flathead",
+  "displayName": "Dusky Flathead",
+  "profileCurve": [0.12, 0.28, 0.42, 0.5, 0.48, 0.44, 0.38, 0.31, 0.25, 0.2, 0.16, 0.13, 0.1, 0.06],
+  "amplitudeProfile": [0, 0.02, 0.05, 0.09, 0.14, 0.2, 0.28, 0.38, 0.5, 0.62, 0.74, 0.85, 0.94, 1],
+  "swim": { "cruiseHz": 0.6, "burstHz": 4.2, "turnRate": 1.4, "ambushBias": 0.85 },
+  "palette": { "dorsalIdx": 1, "ventralIdx": 4, "iridescence": 0.15 },
+  "markings": { "type": "ocelli", "count": 9, "seed": 41 },
+  "caudal": { "fork": 0.05, "span": 0.9 },
+  "cadence": { "preferred": "hop", "tolerance": 0.35 },
+  "fight": { "stamina": 0.55, "surgePower": 0.7, "headshakeFreq": 1.8, "structureSeek": 0.3 },
+  "size": { "minCm": 32, "maxCm": 78, "curve": "lognormal" },
+  "habitat": { "depthM": [0.5, 3.5], "substrate": ["sand", "weed-edge"] },
+  "conditions": { "tideStates": ["run-out", "low-slack"], "lightPref": [0.2, 0.7] }
+}

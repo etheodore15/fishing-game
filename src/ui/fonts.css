@@ -1,0 +1,44 @@
+/*
+ * §5.2 — self-hosted WOFF2, latin subset. No CDN, no runtime Google Fonts call:
+ * the journal has to render on a boat with no signal.
+ */
+
+/* Display — chapter cards and species names. Always uppercase, tight tracking. */
+@font-face {
+  font-family: 'Chivo';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url('/fonts/chivo-black-latin.woff2') format('woff2');
+}
+
+/* Body — journal prose and menus. Variable optical size, as the face intends. */
+@font-face {
+  font-family: 'Newsreader';
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url('/fonts/newsreader-var-latin.woff2') format('woff2-variations');
+}
+
+/* Utility — tide height, depth, weight, time. Mechanical readouts only. */
+@font-face {
+  font-family: 'Space Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/space-mono-400-latin.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Space Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/space-mono-700-latin.woff2') format('woff2');
+}
+
+:root {
+  --font-display: 'Chivo', 'Arial Black', sans-serif;
+  --font-body: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --font-utility: 'Space Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
