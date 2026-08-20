@@ -184,10 +184,21 @@ export class World {
 
   /** Called once the stage knows its size. */
   layout(): void {
+    this.reframe()
+    this.bait.seed(this.water, this.conditions)
+  }
+
+  /**
+   * The framing changed — a rotation, or the browser chrome sliding away — but
+   * the trip did not. Everything that is a function of the viewport is redone;
+   * the bait school is not re-seeded, because where the fish have pushed it is
+   * the state the player has been reading, and losing that to a rotation would
+   * be losing the thing they were fishing.
+   */
+  reframe(): void {
     const vp = this.stage.viewport
     this.water.setWorldWidth(vp.worldWidth)
     this.bed.bake(this.stage.app.renderer, this.water, vp)
-    this.bait.seed(this.water, this.conditions)
     for (const f of this.fish) f.x = Math.min(f.x, vp.worldWidth - 1)
   }
 

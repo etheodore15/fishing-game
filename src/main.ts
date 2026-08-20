@@ -53,6 +53,11 @@ async function boot(): Promise<void> {
     world.layout()
   })
 
+  // The bed is baked against the viewport, so turning the phone has to rebake
+  // it. Without this it only ever happened by accident, when the quality tier
+  // dropped a second or two later and re-laid the world out for its own reasons.
+  stage.app.renderer.on('resize', () => world.reframe())
+
   const input = new InputRouter(canvas)
   input.on((e) => world.onGesture(e))
 

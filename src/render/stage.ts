@@ -134,17 +134,23 @@ export class Stage {
   }
 
   /**
-   * Keep the canvas the size of its container.
+   * Keep the canvas the size of its container, and keep checking.
    *
    * A ResizeObserver on the element rather than PixiJS's own `resizeTo`, which
    * listens for the window's resize event. On Android that event can arrive
-   * before the layout has caught up with a rotation, so the measurement is of
-   * the shape the page used to be, and nothing fires again to correct it — the
+   * before layout has caught up with a rotation, so the measurement is of the
+   * shape the page used to be, and nothing fires again to correct it — the
    * canvas is left at its portrait width on a landscape screen, rendering into
-   * a slice of the display with the rest left black.
+   * a slice of the display with the rest left black. A ResizeObserver reports
+   * the element's box after layout, every time it changes, which is the
+   * question being asked.
    *
-   * A ResizeObserver reports the element's box after layout, every time it
-   * actually changes, which is the question being asked.
+   * The watchdog is here because that is one cause of a mis-sized canvas and
+   * not necessarily the only one — this game is landscape-only, so every
+   * player rotates their phone, and a rotation is exactly when a mobile
+   * browser is least sure of its own viewport. Whatever leaves the renderer
+   * disagreeing with its container, a second is the longest it can last. It
+   * costs two integer reads.
    */
   private watchSize(container: HTMLElement): void {
     const apply = () => {
@@ -157,16 +163,27 @@ export class Stage {
       this.app.renderer.resize(width, height)
     }
 
+    // A rotation on Android settles over several frames, and the box can change
+    // more than once on the way. Re-ask across the next second rather than
+    // trusting the first answer.
+    const settle = () => {
+      apply()
+      for (const ms of [50, 150, 400, 900]) setTimeout(apply, ms)
+    }
+
     this.resizeObserver = new ResizeObserver(apply)
     this.resizeObserver.observe(container)
-    // Belt and braces for the two events that move a phone's viewport without
-    // necessarily resizing the element synchronously.
-    globalThis.addEventListener('orientationchange', apply)
-    globalThis.visualViewport?.addEventListener('resize', apply)
+    globalThis.addEventListener('orientationchange', settle)
+    globalThis.addEventListener('resize', settle)
+    globalThis.visualViewport?.addEventListener('resize', settle)
+    const watchdog = setInterval(apply, 1000)
+
     this.stopWatching = () => {
+      clearInterval(watchdog)
       this.resizeObserver?.disconnect()
-      globalThis.removeEventListener('orientationchange', apply)
-      globalThis.visualViewport?.removeEventListener('resize', apply)
+      globalThis.removeEventListener('orientationchange', settle)
+      globalThis.removeEventListener('resize', settle)
+      globalThis.visualViewport?.removeEventListener('resize', settle)
     }
     apply()
     this.onResize()
