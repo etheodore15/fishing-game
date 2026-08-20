@@ -44,7 +44,11 @@ jobs:
           BASE_PATH: /${{ github.event.repository.name }}/
           BUILD_ID: ${{ github.sha }}
 
+      # enablement turns Pages on through the API on the first run, so a fresh
+      # clone of this repository deploys without anyone opening Settings.
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - uses: actions/upload-pages-artifact@v3
         with:
