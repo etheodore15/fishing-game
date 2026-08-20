@@ -2,7 +2,15 @@ import type { Clock } from '../engine/clock.ts'
 import type { Quality } from '../engine/quality.ts'
 import { TIDE, TIME_COMPRESSION } from '../engine/tuning.ts'
 import { gameStore } from '../engine/store.ts'
+import { Container } from 'pixi.js'
 import { Bed } from '../render/bed.ts'
+import { BaitRenderer } from '../render/bait.ts'
+import { FishRenderer } from '../render/fish.ts'
+import { BaitSchool } from './boids.ts'
+import { Fish } from './fish.ts'
+import { species as speciesById } from '../content/index.ts'
+import { clamp, rng } from '../art/noise.ts'
+import type { Conditions, LureState } from './types.ts'
 import type { Stage } from '../render/stage.ts'
 import type { SceneUniforms } from '../render/stage.ts'
 import { bathymetrySeed, type Chapter } from '../content/schema.ts'
@@ -33,6 +41,25 @@ import { WaterField } from './water.ts'
 export class World {
   readonly water: WaterField
   readonly bed = new Bed()
+  readonly fish: Fish[] = []
+  readonly bait: BaitSchool
+  /** Metre-space container: children position themselves in world units. */
+  private readonly worldLayer = new Container()
+  private readonly fishView = new FishRenderer()
+  private readonly baitView: BaitRenderer
+
+  /**
+   * The lure, before the cast exists. Fish and bait both read it, and both
+   * cope with it never entering the water.
+   */
+  readonly lure: LureState = {
+    x: 0, y: 0, speed: 0, vx: 0, vy: 0,
+    inWater: false, airborne: false,
+    cadence: null, cadenceQuality: 0, cadenceHz: 0,
+  }
+
+  /** Live conditions handed to every sub-simulation. */
+  readonly conditions: Conditions
 
   readonly tide: TideReading = emptyTideReading()
   readonly light: LightReading = emptyLightReading()
@@ -60,6 +87,26 @@ export class World {
     this.water.octaves = quality.settings.waterOctaves
     this.stage.layers.bed.addChild(this.bed.view)
     this.stage.layers.surfaceFx.addChild(this.bed.aboveView)
+
+    this.bait = new BaitSchool(quality.settings.baitAgents, 5501)
+    this.baitView = new BaitRenderer(quality.settings.baitAgents)
+    this.worldLayer.addChild(this.baitView.view, this.fishView.view)
+    this.worldLayer.eventMode = 'none'
+    this.worldLayer.interactiveChildren = false
+    this.stage.layers.fish.addChild(this.worldLayer)
+
+    this.conditions = {
+      willingness: 1,
+      flow: 0,
+      lightLevel: 1,
+      depthAt: (x) => this.water.depthAt(x),
+      bedDepth: (x) => this.water.bedDepth(x),
+      surfaceY: (x, t) => this.water.surfaceY(x, t),
+      baitAt: (x) => this.bait.densityAt(x),
+      baitDepthAt: (x) => this.bait.depthAt(x),
+    }
+
+    this.spawnFish()
     // The chapter declares its cycle in in-game minutes; the compression factor
     // turns that into the 6 real minutes §13.7 asks for. Deriving it rather than
     // hard-coding 360s means the two figures can never drift apart.
@@ -71,11 +118,34 @@ export class World {
     }
   }
 
+  /**
+   * Populate the water.
+   *
+   * A fixed number of fish: §13 asks the *behaviour* to change with the tide,
+   * not the stock. A flat that empties of fish on the wrong tide teaches the
+   * player nothing, because there is nothing to watch.
+   */
+  private spawnFish(): void {
+    const rand = rng(4409)
+    for (const id of this.chapter.species) {
+      const sp = speciesById(id)
+      for (let i = 0; i < 4; i++) {
+        const f = new Fish(sp, 7000 + i * 131, Fish.drawLength(sp, rand))
+        f.x = 1.5 + rand() * 8
+        f.y = 1.4 + rand() * 1.4
+        f.heading = rand() < 0.5 ? 0 : Math.PI
+        this.fish.push(f)
+      }
+    }
+  }
+
   /** Called once the stage knows its size. */
   layout(): void {
     const vp = this.stage.viewport
     this.water.setWorldWidth(vp.worldWidth)
     this.bed.bake(this.stage.app.renderer, this.water, vp)
+    this.bait.seed(this.water, this.conditions)
+    for (const f of this.fish) f.x = Math.min(f.x, vp.worldWidth - 1)
   }
 
   update(dt: number, clock: Clock): void {
@@ -96,11 +166,37 @@ export class World {
     vp.tideOffsetM = this.water.tideOffsetM
     vp.update()
 
+    // Willingness folds the tide and the light into one number the fish read.
+    this.conditions.flow = this.tide.flow
+    this.conditions.lightLevel = this.light.level
+    this.conditions.willingness = this.willingnessFor(this.chapter.species[0]!)
+
+    this.bait.update(dt, this.water, this.conditions, this.fish)
+    for (const f of this.fish) f.update(dt, this.water, this.conditions, this.lure)
+
     this.hudAccumulator += dt
     if (this.hudAccumulator >= 0.25) {
       this.hudAccumulator = 0
       this.publishHud(clock)
     }
+  }
+
+  /**
+   * How much this species wants to feed right now (§10.1 `conditions`).
+   *
+   * This is the mechanism behind the acceptance criterion that a player can
+   * articulate the tide pattern after three sessions: nothing tells them the
+   * bite is on, but the fish behave differently and the bait gets hammered.
+   */
+  willingnessFor(speciesId: string): number {
+    const sp = speciesById(speciesId)
+    const tideMatch = sp.conditions.tideStates.includes(this.tide.state) ? 1 : 0.26
+    const [lo, hi] = sp.conditions.lightPref
+    const level = this.light.level
+    let lightMatch = 1
+    if (level < lo) lightMatch = Math.exp(-Math.pow((lo - level) / 0.22, 2))
+    else if (level > hi) lightMatch = Math.exp(-Math.pow((level - hi) / 0.22, 2))
+    return clamp(tideMatch * lightMatch, 0.05, 1)
   }
 
   private publishHud(clock: Clock): void {
@@ -115,6 +211,7 @@ export class World {
   }
 
   render(clock: Clock): void {
+    const vp = this.stage.viewport
     const s = this.scene
     s.timeSec = clock.renderTime
     s.windKt = this.wind.speedKt
@@ -132,7 +229,28 @@ export class World {
     s.glare = Math.max(0, this.light.level - 0.55) * 2.2 * (0.45 + 0.55 * flatness)
 
     this.bed.tint(this.stage.livePalette)
-    this.bed.follow(this.stage.viewport, this.stage.app.renderer.resolution)
+    this.bed.follow(vp, this.stage.app.renderer.resolution)
+
+    // World-space children draw in metres; one container carries the mapping.
+    this.worldLayer.scale.set(vp.pxPerM)
+    this.worldLayer.y = vp.waterlinePx
+
+    const lightX = Math.sin(s.lightAngle)
+    const lightY = Math.cos(s.lightAngle)
+    const palette = this.stage.livePalette
+    this.baitView.render(this.bait, palette)
+    this.fishView.render(this.fish, clock.renderTime, palette, lightX, lightY, this.light.level)
+
+    // Foam sources (§8.2): structure edges always, and the surface disturbance
+    // of a bust-up wherever the school is actually being hammered.
+    this.stage.beginFoam()
+    for (const st of this.water.structures) {
+      if (!st.overhangs) continue
+      this.stage.addFoamSource(st.x, 0.30, st.radius * 1.3)
+    }
+    const shower = this.bait.surfaceActivity()
+    if (shower > 0.004) this.stage.addFoamSource(this.bait.bustX, Math.min(1, shower * 9), 1.1)
+
     this.stage.render(clock.step, s)
   }
 
@@ -142,5 +260,7 @@ export class World {
 
   destroy(): void {
     this.bed.destroy()
+    this.fishView.destroy()
+    this.baitView.destroy()
   }
 }

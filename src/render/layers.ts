@@ -19,16 +19,16 @@ export class Viewport {
   /** Metres of world visible across the viewport. */
   worldWidth = 14
   /** Metres of world visible top to bottom. */
-  worldHeight = 5.45
+  worldHeight = 7.0
 
   /** Screen y (px) of MEAN water level, ignoring the tide. Baked art uses this
    *  so a tide change is a translation rather than a re-rasterisation. */
   meanWaterlinePx = 0
 
   /** Metres of sky shown above mean water level at the default framing. */
-  private readonly airM = 1.45
+  private readonly airM = 1.8
   /** Metres of water shown below mean water level. */
-  private readonly waterM = 4.0
+  private readonly waterM = 5.2
 
   /** Tide offset in metres, added to the waterline. */
   tideOffsetM = 0

@@ -107,8 +107,26 @@ export function paletteHexAt(hour: number): PaletteHex {
   return out as unknown as PaletteHex
 }
 
-/** Palette slot as a packed 0xRRGGBB int, for Pixi tints and Graphics fills. */
+/**
+ * Palette slot as a packed 0xRRGGBB int for Pixi tints on anything drawn into
+ * the underwater target.
+ *
+ * Deliberately NOT sRGB-encoded. The subsurface pass mixes the underwater
+ * scene with water colours that are linear, and only converts to sRGB once at
+ * the very end — so anything handed to it must already be linear or it gets
+ * decoded twice and washes out.
+ */
 export function slotInt(palette: Float32Array, slot: number): number {
+  const i = slot * 3
+  let n = 0
+  for (let c = 0; c < 3; c++) {
+    n = (n << 8) | Math.round(Math.min(1, Math.max(0, palette[i + c]!)) * 255)
+  }
+  return n
+}
+
+/** Palette slot as an sRGB-encoded int, for anything drawn straight to screen. */
+export function slotIntSRGB(palette: Float32Array, slot: number): number {
   const i = slot * 3
   let n = 0
   for (let c = 0; c < 3; c++) {

@@ -1,6 +1,6 @@
 import { Container, Graphics, RenderTexture, Sprite, Texture } from 'pixi.js'
 import { rng } from '../art/noise.ts'
-import { SLOT, slotInt } from '../art/palettes.ts'
+import { SLOT, slotInt, slotIntSRGB } from '../art/palettes.ts'
 import { TIDE } from '../engine/tuning.ts'
 import type { WaterField } from '../sim/water.ts'
 import type { Viewport } from './layers.ts'
@@ -182,7 +182,8 @@ export class Bed {
     // into the depth fog.
     this.bedSprite.tint = slotInt(palette, SLOT.shallow)
     this.structureSprite.tint = slotInt(palette, SLOT.deep)
-    this.aboveSprite.tint = slotInt(palette, SLOT.deep)
+    // This one composites straight over the finished water, so it is encoded.
+    this.aboveSprite.tint = slotIntSRGB(palette, SLOT.deep)
   }
 
   destroy(): void {

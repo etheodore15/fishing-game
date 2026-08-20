@@ -115,8 +115,8 @@ export class WaterField {
     // The flat, then the sand drop into the channel. Depths are chosen so the
     // bed sits low in the frame and the drop-off runs out of the bottom of it —
     // the flat is the stage, the channel is the wing the fish come from.
-    const drop = smoothstep(0.58, 0.88, f) * 1.55
-    const flat = 2.45 + drop
+    const drop = smoothstep(0.58, 0.88, f) * 1.5
+    const flat = 2.9 + drop
     // Ripples and a weed hummock or two.
     const ripple = (fbm1(x * 0.62, 4, this.bedSeed) - 0.5) * 0.34
     const hummock = (fbm1(x * 0.17 + 11.3, 2, this.bedSeed + 3) - 0.5) * 0.5
