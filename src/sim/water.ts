@@ -162,11 +162,19 @@ export class WaterField {
     })
   }
 
-  /** Nearest structure to a point, weighted by how badly a fish wants it. */
-  nearestStructure(x: number, y: number): { s: Structure; dist: number } | null {
+  /**
+   * Nearest structure to a point.
+   *
+   * `minSeverity` filters to structure that can actually do something. A sand
+   * drop-off is a depth change, not a snag: a fish cannot cut you off on it,
+   * and treating it as a bust-off hazard makes every fight end in the same
+   * arbitrary way. Only the racks (severity 1) genuinely take a fish off you.
+   */
+  nearestStructure(x: number, y: number, minSeverity = 0): { s: Structure; dist: number } | null {
     let best: Structure | null = null
     let bestD = Infinity
     for (const s of this.structures) {
+      if (s.severity < minSeverity) continue
       const d = Math.hypot(s.x - x, s.y - y) - s.radius
       if (d < bestD) {
         bestD = d
@@ -175,6 +183,9 @@ export class WaterField {
     }
     return best ? { s: best, dist: Math.max(0, bestD) } : null
   }
+
+  /** Severity at or above which a structure can bust a fish off. */
+  static readonly BUST_SEVERITY = 0.5
 
   /** Current velocity at a depth, m/s. Slower near the bed, as it really is. */
   currentAt(depth: number): number {

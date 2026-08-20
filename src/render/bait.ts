@@ -91,7 +91,9 @@ export class BaitRenderer {
       const ny = dx * w
       const hx = dx * half
       const hy = dy * half
-      const flash = panic * 0.85
+      // Only a genuinely frightened fish turns and catches the light. Flashing
+      // on mild unease made the whole school read as permanently busting up.
+      const flash = Math.max(0, panic - 0.18) * 1.05
 
       let o = i * VERTS_PER_AGENT * FLOATS_PER_VERTEX
       v[o] = x - hx + nx; v[o + 1] = y - hy + ny; v[o + 2] = flash

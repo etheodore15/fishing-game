@@ -96,7 +96,14 @@ export class InputRouter {
   private readonly onDown = (e: PointerEvent): void => {
     if (this.pointerId !== null) return
     e.preventDefault()
-    this.el.setPointerCapture(e.pointerId)
+    // Capture is an optimisation, not a requirement: it throws for synthetic
+    // pointers and on a couple of mobile browsers, and losing it only means a
+    // gesture that leaves the canvas ends early.
+    try {
+      this.el.setPointerCapture(e.pointerId)
+    } catch {
+      /* not fatal */
+    }
     this.pointerId = e.pointerId
     this.startX = e.clientX
     this.startY = e.clientY
@@ -121,6 +128,10 @@ export class InputRouter {
     const dy = e.clientY - this.startY
     this.moved = Math.hypot(dx, dy)
     this.pushSample(e.clientX, e.clientY, e.timeStamp)
+    // Once the pointer has travelled far enough to be a cast, it can no longer
+    // become a hold. Without this a slow flick turns into a drag partway
+    // through and the cast is silently swallowed.
+    if (!this.holding && this.moved > GESTURE.flickMinPx) clearTimeout(this.holdTimer)
     if (this.holding) {
       const { nx, ny } = this.norm(e.clientX, e.clientY)
       this.emit({ type: 'holdmove', x: e.clientX, y: e.clientY, nx, ny })

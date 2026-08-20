@@ -32,6 +32,14 @@ export interface Conditions {
   depthAt(x: number): number
   bedDepth(x: number): number
   surfaceY(x: number, t: number): number
+  /**
+   * The live water surface at a world x, without needing the clock.
+   *
+   * Sub-simulations that do not carry sim time still have to know where the
+   * top of the water is — a fish clamped to a fixed depth cannot reach a lure
+   * floating at the top of the tide, which is exactly the bug this fixes.
+   */
+  surfaceTop(x: number): number
   /** 0-1 bait density at a world x. Predators hunt on this. */
   baitAt(x: number): number
   /** Depth of the densest bait near a world x, metres. */

@@ -1,5 +1,7 @@
 import { useEffect } from 'react'
 import { gameStore, useGame } from '../engine/store.ts'
+import type { World } from '../sim/world.ts'
+import { CatchCard } from './CatchCard.tsx'
 import { UtilityStrip } from './UtilityStrip.tsx'
 
 /**
@@ -10,8 +12,9 @@ import { UtilityStrip } from './UtilityStrip.tsx'
  * path — the strip updates at 4Hz from the sim, nothing else updates at all
  * unless the player changes screens.
  */
-export function App() {
+export function App({ world }: { world: World }) {
   const screen = useGame((s) => s.screen)
+  const phase = useGame((s) => s.phase)
   const loss = useGame((s) => s.loss)
 
   // Clear a loss banner after it has been read. The animation and sound carry
@@ -29,6 +32,7 @@ export function App() {
         <>
           <UtilityStrip />
           {loss && <LossBanner kind={loss} />}
+          {phase === 'log' && <CatchCard onDismiss={() => world.dismissLog()} />}
         </>
       )}
     </>

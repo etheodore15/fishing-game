@@ -25,10 +25,15 @@ export class Viewport {
    *  so a tide change is a translation rather than a re-rasterisation. */
   meanWaterlinePx = 0
 
-  /** Metres of sky shown above mean water level at the default framing. */
-  private readonly airM = 1.8
+  /**
+   * Metres of sky above mean water level.
+   *
+   * Sized by the rod, not by taste: at the top of the tide the water is 0.8m
+   * above mean, and the rod tip has to stay clear of it and stay in frame.
+   */
+  private readonly airM = 2.4
   /** Metres of water shown below mean water level. */
-  private readonly waterM = 5.2
+  private readonly waterM = 4.6
 
   /** Tide offset in metres, added to the waterline. */
   tideOffsetM = 0

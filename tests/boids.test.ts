@@ -21,6 +21,7 @@ function harness() {
     depthAt: (x) => water.depthAt(x),
     bedDepth: (x) => water.bedDepth(x),
     surfaceY: (x, t) => water.surfaceY(x, t),
+    surfaceTop: (x) => water.surfaceY(x, 0),
     baitAt: () => 0,
     baitDepthAt: () => 0.6,
   }

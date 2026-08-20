@@ -37,8 +37,11 @@ interface StateProfile {
  */
 const PROFILES: Record<FishState, StateProfile> = {
   cruise: { beat: 0.6, amp: 0.5, turn: 0.5, speed: 0.22, standoff: -1 },
-  notice: { beat: 1.0, amp: 0.8, turn: 1.1, speed: 0.3, standoff: -1 },
-  inspect: { beat: 1.5, amp: 1.05, turn: 1.4, speed: 0.62, standoff: 0.42 },
+  notice: { beat: 1.0, amp: 0.8, turn: 1.1, speed: 0.55, standoff: -1 },
+  // An inspecting fish has to be able to hold station on a lure being worked
+  // home. Slower than the retrieve and it simply falls behind and gives up,
+  // which reads as the fish losing interest when really it lost a footrace.
+  inspect: { beat: 1.5, amp: 1.05, turn: 1.4, speed: 1.2, standoff: 0.42 },
   commit: { beat: 5.2, amp: 2.2, turn: 2.0, speed: 2.4, standoff: 0 },
   hooked: { beat: 3.4, amp: 1.7, turn: 1.6, speed: 0.9, standoff: -1 },
   surge: { beat: 6.0, amp: 2.5, turn: 1.2, speed: 2.9, standoff: -1 },
@@ -226,7 +229,7 @@ export class Fish {
       case 'commit':
         // A commit that does not connect within its own window falls away —
         // the fish had a look and thought better of it.
-        if (this.stateTime > 0.9) {
+        if (this.stateTime > 1.4) {
           this.interest *= 0.35
           this.setState('inspect')
         }
@@ -262,7 +265,7 @@ export class Fish {
     if (this.rand() > chance) return
 
     this.lungeX = clamp(this.x + (this.rand() - 0.5) * 0.7, 0.5, 40)
-    this.lungeY = Math.max(0.08, cond.baitDepthAt(this.x))
+    this.lungeY = Math.max(cond.surfaceTop(this.x) + 0.06, cond.baitDepthAt(this.x))
     this.lungeTimer = 0.55 + this.rand() * 0.5
   }
 
@@ -308,9 +311,11 @@ export class Fish {
       if (this.lieTimer <= 0) this.chooseLie(water, cond, lure)
     }
 
-    // Never swim into the bed or out through the surface.
+    // Never swim into the bed or out through the surface — but "the surface"
+    // is where the tide has actually put it, not a fixed depth.
     const bed = cond.bedDepth(tx)
-    ty = clamp(ty, 0.12, bed - this.lengthM * 0.12)
+    const top = cond.surfaceTop(tx) + this.lengthM * 0.12
+    ty = clamp(ty, top, bed - this.lengthM * 0.12)
 
     let toward = Math.atan2(ty - this.y, tx - this.x)
     // A little wander so nothing tracks a straight line to its target.
@@ -337,7 +342,7 @@ export class Fish {
     this.x += cond.flow * 0.12 * dt * (1 - clamp(this.y / Math.max(0.3, cond.bedDepth(this.x)), 0, 1))
 
     this.x = clamp(this.x, 0.4, water.width - 0.4)
-    this.y = clamp(this.y, 0.1, cond.bedDepth(this.x))
+    this.y = clamp(this.y, cond.surfaceTop(this.x) + 0.04, cond.bedDepth(this.x))
   }
 
   /**

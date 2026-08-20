@@ -29,24 +29,31 @@ export const GESTURE = {
 } as const
 
 export const CAST = {
-  /** Lure launch speed (world units/s) at power 1. */
-  maxLaunchSpeed: 15.5,
-  minLaunchSpeed: 3.0,
+  /**
+   * Lure launch speed (world units/s) at power 1.
+   *
+   * Tuned so a full-power cast at 45 degrees lands just short of the far side
+   * of the visible water. A cast that flies off the edge of the frame is not a
+   * better cast, it is a cast the player cannot read.
+   */
+  maxLaunchSpeed: 10.5,
+  minLaunchSpeed: 4.0,
   /** Gravity on the airborne lure (world units/s²). */
   gravity: 9.8,
   /** Wind displacement per unit of wind speed (kt) per second, airborne only. */
   windDriftPerKt: 0.021,
   /** Aerodynamic drag on the lure in flight. */
   airDrag: 0.16,
-  /** Radius (world units) around structure within which a landing snags. */
-  snagRadius: 0.55,
-  /** Probability a cast passing through overhang snags. */
-  overhangSnagChance: 0.34,
+  /**
+   * Clearance (world units) a lure needs around structure that breaks the
+   * surface. A cast that clears the oyster racks by this much is safe.
+   */
+  snagMargin: 0.16,
 } as const
 
 export const WORK = {
   /** Interest gained per second when the retrieve cadence matches the species. */
-  interestGainPerSec: 0.62,
+  interestGainPerSec: 0.85,
   /** Interest lost per second on a mismatched cadence. */
   interestDecayPerSec: 0.30,
   /** Interest lost per second when the lure is simply static. */
@@ -83,16 +90,25 @@ export const FIGHT = {
   /** Extra tension per unit of fish surge velocity. */
   surgeTensionScale: 0.30,
   /** hookHold lost per second, scaled by tension above hookSafeTension. */
-  hookWearPerSec: 0.10,
+  hookWearPerSec: 0.055,
   hookSafeTension: 0.55,
   /** Extra hookHold lost per head-shake event. */
-  headshakeWear: 0.028,
-  /** Stamina drained per second at full drag. */
-  staminaDrainPerSec: 0.145,
+  headshakeWear: 0.019,
+  /**
+   * Stamina drained per second at full drag, before the species' own capacity.
+   * A fish starts every fight at 1 and its `fight.stamina` stat scales how
+   * long that lasts, so the schema value reads as staying power rather than as
+   * a starting handicap.
+   */
+  staminaDrainPerSec: 0.085,
   /** Stamina recovered per second when the player gives slack. */
-  staminaRecoverPerSec: 0.045,
-  /** Line retrieved (world units/s) when drag is held and the fish is tiring. */
-  gainPerSec: 0.95,
+  staminaRecoverPerSec: 0.02,
+  /**
+   * Metres per second the fish is drawn toward the rod under full drag.
+   * This is the pump: holding drag physically gains line on a tiring fish,
+   * which is what makes the fight a tug of war rather than a waiting game.
+   */
+  gainPerSec: 1.25,
   /** Line given (world units/s) during a surge that outmuscles the drag. */
   surgeGivePerSec: 1.6,
   /** Distance to the rod at which the fish is landed. */
