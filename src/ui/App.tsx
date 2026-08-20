@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { gameStore, useGame } from '../engine/store.ts'
 import type { World } from '../sim/world.ts'
 import { CatchCard } from './CatchCard.tsx'
+import { Guide } from './Guide.tsx'
 import { Journal } from './Journal.tsx'
 import { Settings } from './Settings.tsx'
 import { UtilityStrip } from './UtilityStrip.tsx'
@@ -35,6 +36,7 @@ export function App({ world }: { world: World }) {
       {screen === 'fishing' && (
         <>
           <UtilityStrip />
+          <Guide />
           {loss && <LossBanner kind={loss} />}
           {phase === 'log' && <CatchCard onDismiss={() => world.dismissLog()} />}
           <div className="corner-nav">

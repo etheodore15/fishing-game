@@ -16,7 +16,8 @@
     "rig": "node --experimental-strip-types tools/rig-preview.ts",
     "offline": "node tools/offline.mjs",
     "sw": "node tools/sw-update.mjs",
-    "play": "node tools/play.mjs"
+    "play": "node tools/play.mjs",
+    "bite": "node --experimental-strip-types tools/bite-sim.ts"
   },
   "dependencies": {
     "howler": "^2.2.4",

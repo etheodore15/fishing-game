@@ -1,9 +1,10 @@
-import { gameStore, useGame } from '../engine/store.ts'
+import { gameStore, useGame, type GuideMode } from '../engine/store.ts'
 import type { Tier } from '../engine/quality.ts'
 
 declare const __BUILD_ID__: string
 
 const TIERS: (Tier | null)[] = [null, 'high', 'mid', 'low']
+const GUIDES: GuideMode[] = ['auto', 'on', 'off']
 
 /**
  * Settings.
@@ -32,6 +33,22 @@ export function Settings({ onClose }: { onClose: () => void }) {
       </label>
 
       <label className="row">
+        <span>Guide</span>
+        <span className="tiers">
+          {GUIDES.map((g) => (
+            <button
+              key={g}
+              data-interactive
+              className={settings.guide === g ? 'on' : ''}
+              onClick={() => set({ guide: g })}
+            >
+              {g}
+            </button>
+          ))}
+        </span>
+      </label>
+
+      <label className="row">
         <span>Detail</span>
         <span className="tiers">
           {TIERS.map((t) => (
@@ -48,18 +65,27 @@ export function Settings({ onClose }: { onClose: () => void }) {
       </label>
 
       <p className="note">
+        The guide names the gestures and nothing about the water; on auto it
+        stands down once you have landed a fish. Detail follows the device, and
+        drops a tier if the first few seconds run below 45fps.
         {settings.reducedMotion
-          ? 'Reduced motion is on in your system settings. Print misregistration and camera movement are off; the water is not.'
-          : 'Detail follows the device by default, and drops a tier if the first few seconds run below 45fps.'}
+          ? ' Reduced motion is on in your system settings: print misregistration and camera movement are off, the water is not.'
+          : ''}
       </p>
 
-      <button data-interactive onClick={onClose}>
-        Done
-      </button>
-
-      {/* So a player on a stale cache can say which build they are actually
-          running, rather than us guessing from a screenshot. */}
-      <p className="build">Build {__BUILD_ID__}</p>
+      {/*
+        Pinned to the bottom of the sheet. On a landscape phone the sheet is
+        taller than the screen and scrolls, and a Done button you have to go
+        looking for is a Done button that is not there.
+      */}
+      <div className="sheet-foot">
+        <button data-interactive onClick={onClose}>
+          Done
+        </button>
+        {/* So a player on a stale cache can say which build they are actually
+            running, rather than us guessing from a screenshot. */}
+        <p className="build">Build {__BUILD_ID__}</p>
+      </div>
     </div>
   )
 }

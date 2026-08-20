@@ -1,0 +1,255 @@
+/**
+ * How long does it take to get a bite, if you do everything right?
+ *
+ * The full free-swimming sim, headless: real WaterField, real Fish, real Trip,
+ * real cadence reader. Only the renderer and the bait boids are stubbed. It
+ * drives a scripted retrieve — a cast, then hops at a fixed interval — and
+ * reports what the fish actually did.
+ *
+ * This exists because "I have cast a hundred times and nothing has looked at
+ * it" is not a question you can answer by reading the code. Either a player
+ * doing the right thing gets a fish in a reasonable time or they do not, and
+ * that is a number.
+ *
+ * Usage: node --experimental-strip-types tools/bite-sim.ts [hopIntervalSec]
+ */
+import { readFileSync } from 'node:fs'
+import { bathymetrySeed, type Chapter, type Species } from '../src/content/schema.ts'
+import { TIDE, TIME_COMPRESSION } from '../src/engine/tuning.ts'
+import { rng } from '../src/art/noise.ts'
+import { Fish } from '../src/sim/fish.ts'
+import { Trip } from '../src/sim/trip.ts'
+import { WaterField } from '../src/sim/water.ts'
+import { DEFAULT_TIDE, emptyLightReading, emptyTideReading, readLight, readTide } from '../src/sim/tide.ts'
+import type { Conditions, LureState } from '../src/sim/types.ts'
+
+const DT = 1 / 60
+
+// The content is imported as JSON modules by Vite, which Node will not do
+// without an import attribute the TypeScript here cannot carry. Read it.
+const json = <T,>(p: string): T => JSON.parse(readFileSync(new URL(p, import.meta.url), 'utf8')) as T
+const SPECIES = json<Species>('../src/content/species/dusky-flathead.json')
+const CHAPTER = json<Chapter>('../src/content/chapters/ch1-estuary.json')
+
+export interface BiteRun {
+  /** Seconds of retrieve before a fish committed, or null if none did. */
+  timeToCommit: number | null
+  /** Highest interest any fish reached. */
+  peakInterest: number
+  /** Closest any fish came to the lure, metres. */
+  closestM: number
+  /** How many casts it took. */
+  casts: number
+  /** Seconds simulated. */
+  elapsed: number
+  /** Fraction of retrieve time with a fish inside perception range. */
+  inRangeFraction: number
+  willingness: number
+  tideState: string
+  finalPhase: string
+  lastCadence: string | null
+}
+
+/** What the player is doing with their thumb. */
+export type PlayerScript = 'hop' | 'steady' | 'twitch' | 'idle' | 'flick-spam'
+
+export function runBite(opts: {
+  hopIntervalSec: number
+  script?: PlayerScript
+  castPower?: number
+  maxCasts?: number
+  startHour?: number
+  seed?: number
+} ): BiteRun {
+  const ch = CHAPTER
+  const sp = SPECIES
+  const water = new WaterField(bathymetrySeed(ch.bathymetry))
+  const worldWidth = 13.3 // a phone in landscape
+  water.setWorldWidth(worldWidth)
+
+  const tide = emptyTideReading()
+  const light = emptyLightReading()
+  const tideConfig = {
+    ...DEFAULT_TIDE,
+    cycleRealSeconds: (ch.tideCycleMinutes * 60) / TIME_COMPRESSION,
+    rangeM: TIDE.rangeM,
+    meanM: TIDE.meanM,
+  }
+
+  let simTime = 0
+  const cond: Conditions = {
+    willingness: 1,
+    flow: 0,
+    lightLevel: 1,
+    depthAt: (x) => water.depthAt(x),
+    bedDepth: (x) => water.bedDepth(x),
+    surfaceY: (x, t) => water.surfaceY(x, t),
+    surfaceTop: (x) => water.surfaceY(x, simTime),
+    // A modest school sitting mid-column over the middle of the flat.
+    baitAt: (x) => Math.max(0, 1 - Math.abs(x - worldWidth * 0.55) / 2.5) * 0.6,
+    baitDepthAt: () => 1.2,
+  }
+
+  const lure: LureState = {
+    x: 0, y: 0, speed: 0, vx: 0, vy: 0,
+    inWater: false, airborne: false,
+    cadence: null, cadenceQuality: 0, cadenceHz: 0,
+  }
+
+  const rand = rng(opts.seed ?? 4409)
+  const fish: Fish[] = []
+  for (let i = 0; i < 4; i++) {
+    const f = new Fish(sp, 7000 + i * 131, Fish.drawLength(sp, rand))
+    f.x = 1.5 + rand() * 8
+    f.y = 1.4 + rand() * 1.4
+    f.heading = rand() < 0.5 ? 0 : Math.PI
+    fish.push(f)
+  }
+
+  let committed = false
+  const noop = () => {}
+  let casts = 0
+  const trip = new Trip(lure, water, cond, fish, {
+    onPhase: (p) => { if (p === 'fight') committed = true },
+    onCast: () => { casts += 1 }, onSplash: noop, onSnag: noop,
+    onHeadshake: noop, onSurge: noop, onOutcome: noop,
+  })
+
+  const startHour = opts.startHour ?? ch.startHour
+  const maxCasts = opts.maxCasts ?? 40
+  const power = opts.castPower ?? 0.75
+
+  let workTime = 0
+  let inRange = 0
+  let peak = 0
+  let closest = Infinity
+  let nextHop = 0
+  let castStartedAt = 0
+  let holding = false
+  const script = opts.script ?? 'hop'
+  const HOLD_START = { type: 'holdstart', x: 0, y: 0, nx: 0.5, ny: 0.5 } as const
+  const TAP = { type: 'tap', x: 0, y: 0, nx: 0.5, ny: 0.5 } as const
+  const FLICK = { type: 'flick', nx: 0.2, ny: 0.6, dx: 0.7, dy: -0.7, power: 0.8, angle: 0.78 } as const
+
+  while (!committed) {
+    // Read phase: fire a cast up and out, 45 degrees.
+    if (trip.phase === 'read') {
+      const a = Math.PI / 4
+      trip.onGesture(
+        { type: 'flick', nx: 0.2, ny: 0.6, dx: Math.cos(a), dy: -Math.sin(a), power, angle: a },
+        water.width, simTime,
+      )
+      nextHop = simTime + 0.6
+      castStartedAt = simTime
+    }
+
+    // One frame.
+    simTime += DT
+    readTide(simTime, tideConfig, tide)
+    readLight(startHour + (simTime * TIME_COMPRESSION) / 3600, 0.5, light)
+    water.flow = tide.flow
+    water.tideOffsetM = tide.heightM - TIDE.meanM
+    cond.flow = tide.flow
+    cond.lightLevel = light.level
+    cond.willingness = willingnessFor(sp, tide.state, light.level)
+
+    if (trip.phase === 'work') {
+      switch (script) {
+        case 'hop':
+          if (simTime >= nextHop) {
+            trip.onGesture({ type: 'hop' }, water.width, simTime)
+            nextHop = simTime + opts.hopIntervalSec
+          }
+          break
+        case 'steady':
+          if (!holding) { trip.onGesture(HOLD_START, water.width, simTime); holding = true }
+          break
+        case 'twitch':
+          if (simTime >= nextHop) {
+            trip.onGesture(TAP, water.width, simTime)
+            nextHop = simTime + opts.hopIntervalSec
+          }
+          break
+        case 'flick-spam':
+          // The player who has only found one gesture: cast, wait, cast again.
+          if (simTime >= nextHop) {
+            trip.onGesture(FLICK, water.width, simTime)
+            nextHop = simTime + 5
+          }
+          break
+        case 'idle':
+          break
+      }
+    }
+
+    trip.step(DT, simTime, 12, 1)
+    for (const f of fish) f.update(DT, water, cond, lure)
+
+    if (trip.phase === 'work') {
+      workTime += DT
+      let near = Infinity
+      for (const f of fish) {
+        peak = Math.max(peak, f.interest)
+        near = Math.min(near, Math.hypot(f.x - lure.x, f.y - lure.y))
+      }
+      closest = Math.min(closest, near)
+      if (near < 4.2) inRange += DT
+    }
+
+    if (simTime - castStartedAt > 180) break // stuck: report it rather than loop
+    if (casts >= maxCasts && trip.phase !== 'work') break
+    if (simTime > 60 * 20) break
+  }
+
+  return {
+    timeToCommit: committed ? workTime : null,
+    peakInterest: peak,
+    closestM: closest,
+    casts,
+    elapsed: simTime,
+    inRangeFraction: workTime > 0 ? inRange / workTime : 0,
+    willingness: cond.willingness,
+    tideState: tide.state,
+    finalPhase: trip.phase,
+    lastCadence: lure.cadence,
+  }
+}
+
+function willingnessFor(sp: Species, state: string, level: number): number {
+  const tideMatch = (sp.conditions.tideStates as readonly string[]).includes(state) ? 1 : 0.26
+  const [lo, hi] = sp.conditions.lightPref
+  let lightMatch = 1
+  if (level < lo!) lightMatch = Math.exp(-Math.pow((lo! - level) / 0.22, 2))
+  else if (level > hi!) lightMatch = Math.exp(-Math.pow((level - hi!) / 0.22, 2))
+  return Math.min(1, Math.max(0.05, tideMatch * lightMatch))
+}
+
+if (process.argv[1]?.endsWith('bite-sim.ts')) {
+  const scripts: PlayerScript[] = ['hop', 'steady', 'twitch', 'idle', 'flick-spam']
+  for (const script of scripts) {
+    const hop = 1.2
+    const r = runBite({ hopIntervalSec: hop, script })
+    console.log(`${script.padEnd(11)}`,
+      r.timeToCommit === null
+        ? `NO BITE — ${r.casts} cast(s), ${(r.elapsed / 60).toFixed(1)} min, phase stuck at ${r.finalPhase}`
+        : `bite after ${r.timeToCommit.toFixed(1)}s of retrieve, ${r.casts} cast(s)`,
+      `| peak interest ${r.peakInterest.toFixed(2)}`,
+      `| cadence read as ${r.lastCadence ?? 'nothing'}`,
+    )
+  }
+  console.log('')
+  const intervals = process.argv[2] ? [Number(process.argv[2])] : [0.8, 1.2, 1.6, 2.0, 3.0]
+  for (const hop of intervals) {
+    const r = runBite({ hopIntervalSec: hop })
+    console.log(
+      `hop every ${hop.toFixed(1)}s →`,
+      r.timeToCommit === null
+        ? `NO BITE in ${r.casts} casts (${(r.elapsed / 60).toFixed(1)} min)`
+        : `bite after ${r.timeToCommit.toFixed(1)}s of retrieve, ${r.casts} casts`,
+      `| peak interest ${r.peakInterest.toFixed(2)}`,
+      `| closest ${r.closestM.toFixed(2)}m`,
+      `| in range ${(r.inRangeFraction * 100).toFixed(0)}% of the retrieve`,
+      `| willingness ${r.willingness.toFixed(2)} (${r.tideState})`,
+    )
+  }
+}

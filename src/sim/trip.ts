@@ -48,6 +48,9 @@ export class Trip {
   private marks: CadenceMark[] = []
   private lastHopAt = -Infinity
   private sinceLanded = 0
+  private lastGestureAt = -Infinity
+  /** True once the player has cast at all, for the guide. */
+  everCast = false
   private readonly rand = rng(6607)
 
   /**
@@ -95,6 +98,21 @@ export class Trip {
     }
   }
 
+  /** True while the player's thumb is down. Read by the guide. */
+  get isHolding(): boolean {
+    return this.holding
+  }
+
+  /**
+   * Seconds since the player last worked the lure — or since it landed, if
+   * they have not touched it yet. A lure that splashed down a moment ago is
+   * not a lure that has been left sitting, and the guide says different things
+   * about the two.
+   */
+  sinceGesture(t: number): number {
+    return Math.min(t - this.lastGestureAt, this.sinceLanded)
+  }
+
   private setPhase(p: Phase): void {
     if (this.phase === p) return
     this.phase = p
@@ -105,15 +123,26 @@ export class Trip {
   onGesture(e: GestureEvent, worldWidth: number, t: number): void {
     switch (e.type) {
       case 'flick':
-        if (this.phase === 'read') this.launch(e.nx, e.ny, e.dx, e.dy, e.power, worldWidth)
+        // A flick during a retrieve winds in and casts again. Without this the
+        // player who does not know the retrieve gesture is stuck: the lure is
+        // on the bottom, the only way back to `read` is to work it home, and
+        // every attempt to cast again is silently dropped. That reads as a
+        // hundred casts and not one fish, because none of them happened.
+        if (this.phase === 'read' || this.phase === 'work') {
+          this.launch(e.nx, e.ny, e.dx, e.dy, e.power, worldWidth)
+        }
         break
       case 'tap':
-        if (this.phase === 'work') this.mark('twitch', t, 1.35)
+        if (this.phase === 'work') {
+          this.mark('twitch', t, 1.35)
+          this.lastGestureAt = t
+        }
         break
       case 'hop':
         if (this.phase === 'work') {
           this.mark('hop', t, 0)
           this.lastHopAt = t
+          this.lastGestureAt = t
           // A hop lifts the lure and draws it home; it does not fire it left.
           // The direction has to come from where the rod is, or a retrieve
           // walks the lure off the far side of the screen.
@@ -123,7 +152,10 @@ export class Trip {
         break
       case 'holdstart':
         this.holding = true
-        if (this.phase === 'work') this.mark('steady', t, 0)
+        if (this.phase === 'work') {
+          this.mark('steady', t, 0)
+          this.lastGestureAt = t
+        }
         break
       case 'holdend':
         this.holding = false
@@ -162,8 +194,13 @@ export class Trip {
     this.lure.inWater = false
     this.lure.cadence = null
     this.lure.cadenceQuality = 0
+    this.lure.cadenceHz = 0
     this.marks.length = 0
+    this.lastHopAt = -Infinity
+    this.sinceLanded = 0
     this.line.reset(this.rod.tipX, this.rod.tipY, this.lure.x, this.lure.y)
+    this.everCast = true
+    this.lastGestureAt = -Infinity
     this.setPhase('cast')
     this.events.onCast(power)
     void nx
@@ -268,6 +305,7 @@ export class Trip {
       this.lureVX = lerp(this.lureVX, dir * 0.95, 1 - Math.exp(-dt * 6))
       this.lureVY = lerp(this.lureVY, -0.16, 1 - Math.exp(-dt * 4))
       this.mark('steady', t, 0)
+      this.lastGestureAt = t
     } else {
       // Otherwise it sinks and goes with the tide, which is most of the game.
       // Terminal velocity lands near 0.8 m/s: a few seconds to the bottom of

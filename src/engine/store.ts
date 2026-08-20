@@ -1,5 +1,6 @@
 import { createStore } from 'zustand/vanilla'
 import { useStore } from 'zustand'
+import type { Hint } from '../sim/coach.ts'
 import type { TideState } from '../sim/tide.ts'
 import type { Tier } from './quality.ts'
 
@@ -28,16 +29,29 @@ export interface CatchRecord {
   at: number
 }
 
+/**
+ * The guide (§6.1).
+ *
+ * 'auto' shows it until the player has landed a fish, which is the point at
+ * which they have demonstrably found the retrieve. It is a setting rather than
+ * a one-shot tutorial because a player who comes back a month later is allowed
+ * to have forgotten.
+ */
+export type GuideMode = 'auto' | 'on' | 'off'
+
 export interface Settings {
   audio: boolean
   tierOverride: Tier | null
   reducedMotion: boolean
+  guide: GuideMode
 }
 
 export interface GameState {
   screen: Screen
   phase: Phase
   hud: HudState
+  /** The guide's current line, or null when it has nothing to say. */
+  hint: Hint | null
   /** Non-null while a loss banner is showing. Cleared on the next cast. */
   loss: LossKind | null
   lastCatch: CatchRecord | null
@@ -53,6 +67,7 @@ export interface GameState {
   setScreen(s: Screen): void
   setPhase(p: Phase): void
   setHud(h: Partial<HudState>): void
+  setHint(h: Hint | null): void
   setLoss(l: LossKind | null): void
   logCatch(c: CatchRecord): void
   restorePage(id: string): void
@@ -72,13 +87,14 @@ export const gameStore = createStore<GameState>()((set) => ({
     windKt: 0,
     windLabel: 'NE',
   },
+  hint: null,
   loss: null,
   lastCatch: null,
   catchLog: [],
   pagesRestored: ['p001'], // the tutorial page ships restored (§13.8)
   restoring: null,
   hasSeenRestoration: false,
-  settings: { audio: true, tierOverride: null, reducedMotion: false },
+  settings: { audio: true, tierOverride: null, reducedMotion: false, guide: 'auto' },
   ready: false,
 
   setScreen: (screen) => set({ screen }),
@@ -93,6 +109,11 @@ export const gameStore = createStore<GameState>()((set) => ({
       }
       return changed ? { hud: { ...s.hud, ...h } } : s
     }),
+  // Same identity guard as the HUD: the guide is written at 4Hz and mostly
+  // says the same thing, and a new object every quarter second would re-render
+  // the overlay for nothing.
+  setHint: (h) =>
+    set((s) => (h?.key === s.hint?.key && h?.text === s.hint?.text ? s : { hint: h })),
   setLoss: (loss) => set({ loss }),
   logCatch: (c) => set((s) => ({ lastCatch: c, catchLog: [...s.catchLog, c] })),
   restorePage: (id) =>

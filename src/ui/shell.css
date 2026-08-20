@@ -73,6 +73,37 @@ html, body {
   opacity: 0.82;
 }
 
+/*
+ * The guide (§6.1).
+ *
+ * Sits directly above the utility strip and reads as part of it: same mono,
+ * same weight, one line. Centred, so the eye finds it without it ever being in
+ * the way of the water.
+ */
+.guide {
+  position: absolute;
+  left: calc(var(--safe-l) + var(--edge));
+  right: calc(var(--safe-r) + var(--edge));
+  bottom: calc(var(--safe-b) + 14px + 2.1em);
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-utility);
+  font-size: clamp(11px, 1.6vh, 15px);
+  letter-spacing: 0.04em;
+  color: var(--paper);
+  text-shadow: 0 1px 0 rgba(3, 7, 12, 0.85);
+  opacity: 0;
+  /* DOM UI may use CSS transitions; the game world may not (§9). */
+  transition: opacity 220ms ease-out;
+  pointer-events: none;
+}
+
+.guide.on { opacity: 0.72; }
+
+@media (prefers-reduced-motion: reduce) {
+  .guide { transition: none; }
+}
+
 /* ---- title ---- */
 .title {
   position: absolute;
@@ -164,6 +195,16 @@ html, body {
   border: 1px solid rgba(18, 24, 28, 0.35);
   box-shadow: 0 18px 40px rgba(3, 7, 12, 0.45);
   text-align: center;
+  /*
+   * A landscape phone is 360 CSS pixels tall. A sheet that is one row taller
+   * than that does not get a scrollbar for free — the overlay declines
+   * pointer events so the water can be worked through it — so it silently
+   * loses its heading off the top and its last control off the bottom.
+   */
+  max-height: calc(100% - 2 * var(--edge));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  pointer-events: auto;
 }
 
 .catch-card h2 {
@@ -376,9 +417,18 @@ html, body {
   font-size: 0.82rem;
   line-height: 1.45;
   opacity: 0.7;
-  margin: 1rem 0 1.4rem;
+  margin: 0.9rem auto 1.1rem;
   max-width: 26rem;
   text-align: left;
+}
+
+.sheet-foot {
+  position: sticky;
+  bottom: -1.4rem;
+  /* Over the paper, so scrolled text passes behind it rather than through it. */
+  background: var(--paper);
+  padding: 0.6rem 0 0;
+  margin-bottom: -1.4rem;
 }
 
 /* A colophon, not a control: small, quiet, and readable when it is needed. */
@@ -387,7 +437,7 @@ html, body {
   font-size: 0.68rem;
   letter-spacing: 0.06em;
   opacity: 0.4;
-  margin: 1.2rem 0 0;
+  margin: 0.7rem 0 0.5rem;
 }
 
 /*

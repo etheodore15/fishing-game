@@ -15,6 +15,7 @@ import { species as speciesById } from '../content/index.ts'
 import { clamp, rng } from '../art/noise.ts'
 import { Audio } from '../audio.ts'
 import { BaitSchool } from './boids.ts'
+import { hintFor, type Attention } from './coach.ts'
 import { Fish } from './fish.ts'
 import { KIND, ParticleField } from './particles.ts'
 import {
@@ -417,6 +418,47 @@ export class World {
       windKt: Math.round(this.wind.speedKt),
       windLabel: compass(this.wind.dirDeg),
     })
+    this.publishHint()
+  }
+
+  /**
+   * The guide's line, written at the same 4Hz as the HUD.
+   *
+   * Off entirely unless the player wants it, and 'auto' retires it once they
+   * have landed a fish — at which point they have found the retrieve, which is
+   * the only thing it was ever there to teach.
+   */
+  private publishHint(): void {
+    const state = gameStore.getState()
+    const mode = state.settings.guide
+    const wanted = mode === 'on' || (mode === 'auto' && state.catchLog.length === 0)
+    if (!wanted) {
+      if (state.hint) state.setHint(null)
+      return
+    }
+
+    state.setHint(
+      hintFor({
+        phase: this.trip.phase,
+        everCast: this.trip.everCast,
+        cadence: this.lure.cadence,
+        preferred: speciesById(this.chapter.species[0]!).cadence.preferred,
+        holding: this.trip.isHolding,
+        sinceGesture: this.trip.sinceGesture(this.lastSimTime),
+        attention: this.attention(),
+      }),
+    )
+  }
+
+  /** The most interested any fish is in the lure right now. */
+  private attention(): Attention {
+    let best: Attention = 'none'
+    for (const f of this.fish) {
+      if (f.state === 'commit') return 'commit'
+      if (f.state === 'inspect') best = 'inspect'
+      else if (f.state === 'notice' && best === 'none') best = 'notice'
+    }
+    return best
   }
 
   render(clock: Clock): void {
