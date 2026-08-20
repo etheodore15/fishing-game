@@ -387,15 +387,21 @@ export class Trip {
     this.lure.cadence = null
     this.holding = false
 
+    // §6.4: three losses, three distinct animations.
     if (outcome === 'line-break') {
-      this.line.breakLine()
-      // A parted line unloads the rod violently. That kick is the whole tell.
-      this.rod.strike(0.16, -0.2)
+      // Parts somewhere up the line and whips back. The rod unloads violently
+      // and most of the line is gone; that kick is the whole tell.
+      this.line.breakLine(-1, 1.6)
+      this.rod.strike(0.17, -0.22)
     } else if (outcome === 'bust-off') {
-      this.line.breakLine()
-      this.rod.strike(-0.1, -0.13)
+      // Cut on the shells, down at the fish's end. The rod straightens once
+      // and the line falls slack instead of whipping.
+      this.line.breakLine(0.93, 0.55)
+      this.rod.strike(-0.07, -0.1)
     } else if (outcome === 'hook-pull') {
-      this.rod.strike(0.05, -0.17)
+      // Nothing parts at all. The weight simply goes, the rod springs up, and
+      // the lure is still on the end of an intact line.
+      this.rod.strike(0.04, -0.19)
     }
 
     this.setPhase(outcome === 'landed' ? 'log' : 'read')

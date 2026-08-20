@@ -56,15 +56,22 @@ export class FishingLine {
   }
 
   /**
-   * Release the line at a random segment.
+   * Release the line.
    *
-   * Random rather than at the knot: line parts at its weakest point, and where
-   * that is is exactly what you do not know until it happens.
+   * `where` is roughly how far along the line it parts, 0 at the rod tip and 1
+   * at the lure. The default is random, because line parts at its weakest
+   * point and where that is is exactly what you do not know until it happens.
+   *
+   * A cut is different from a break: line dragged across oyster shell goes
+   * near the fish, so the angler keeps most of it and the recoil is a slack
+   * flop rather than a whip. §6.4 asks the three losses to look different from
+   * each other, and this is half of how they do.
    */
-  breakLine(): void {
+  breakLine(where = -1, recoil = 1.4): void {
     if (this.brokenAt >= 0) return
-    this.brokenAt = 4 + Math.floor(this.rand() * (SEGMENTS - 8))
-    this.recoil = 1.4
+    const t = where < 0 ? this.rand() : clamp(where, 0, 1)
+    this.brokenAt = clamp(Math.round(3 + t * (SEGMENTS - 6)), 1, SEGMENTS - 1)
+    this.recoil = recoil
   }
 
   get isBroken(): boolean {

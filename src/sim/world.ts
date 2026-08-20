@@ -305,7 +305,33 @@ export class World {
     }
     this.audio.play(outcome as 'line-break' | 'hook-pull' | 'bust-off')
     gameStore.getState().setLoss(outcome as LossKind)
+    this.lossMark(outcome, fish)
     this.trip.finishLog()
+  }
+
+  /**
+   * The visual half of each loss (§6.4).
+   *
+   * Three losses, three different marks left on the water: a parted line
+   * throws spray back at the angler, a bust-off boils over the racks the fish
+   * just reached, and a pulled hook leaves nothing but the swirl of a fish
+   * that was there a moment ago.
+   */
+  private lossMark(outcome: string, fish: Fish): void {
+    const t = this.lastSimTime
+    const surf = this.water.surfaceY(fish.x, t)
+    if (outcome === 'line-break') {
+      this.surfaceFx.burst(KIND.spray, 14, fish.x, surf, 2.6, 1.5, -Math.PI * 0.75, 0.6)
+      this.stage.addFoamSource(fish.x, 0.7, 0.8)
+    } else if (outcome === 'bust-off') {
+      const near = this.water.nearestStructure(fish.x, fish.y, 0.5)
+      const x = near ? near.s.x : fish.x
+      this.surfaceFx.burst(KIND.spray, 10, x, this.water.surfaceY(x, t), 1.6, 2.6, -Math.PI / 2, 0.55)
+      this.subFx.burst(KIND.bubble, 12, x, Math.max(0.2, fish.y), 0.5, 2.4, -Math.PI / 2, 1.1)
+    } else {
+      // A pulled hook is quiet. Bubbles where the fish turned, and that is all.
+      this.subFx.burst(KIND.bubble, 7, fish.x, fish.y, 0.35, 2.6, -Math.PI / 2, 1)
+    }
   }
 
   /** True while a fish is being written up. */
