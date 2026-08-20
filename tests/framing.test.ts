@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { Viewport } from '../src/render/layers.ts'
 import { castPower } from '../src/engine/input.ts'
-import { TIDE } from '../src/engine/tuning.ts'
+import { CAST, TIDE } from '../src/engine/tuning.ts'
 import { WaterField } from '../src/sim/water.ts'
 
 /**
@@ -73,6 +73,15 @@ test('the rod tip stays in frame and above the water at the top of the tide', ()
   const tip = vp.toScreenY(-1.5)
   assert.ok(tip > 0, `the rod tip is ${tip}px — off the top of the screen`)
   assert.ok(tip < vp.waterlineFrac * vp.heightPx, 'the rod tip is under water at high tide')
+})
+
+test('a full-power cast lands in the water, not in the far bank', () => {
+  // Reach is a fraction of the water in front of the angler. If full power
+  // reaches the far side, every cast from there upward lands in the same place
+  // and the top of the power range stops meaning anything.
+  assert.ok(CAST.fullPowerReach < 1, 'full power casts past the visible water')
+  assert.ok(CAST.fullPowerReach > CAST.minPowerReach, 'more power must cast further')
+  assert.ok(CAST.minPowerReach > 0.1, 'the gentlest cast still has to clear the rod')
 })
 
 /**

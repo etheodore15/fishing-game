@@ -45,14 +45,27 @@ export const GESTURE = {
 
 export const CAST = {
   /**
-   * Lure launch speed (world units/s) at power 1.
+   * How far a cast reaches, as a fraction of the water in front of the angler.
    *
-   * Tuned so a full-power cast at 45 degrees lands just short of the far side
-   * of the visible water. A cast that flies off the edge of the frame is not a
-   * better cast, it is a cast the player cannot read.
+   * Relative rather than absolute because the visible world is as wide as the
+   * screen is: a fixed launch speed that lands beautifully on a 16:9 laptop
+   * puts the lure into the far bank on a 4:3 tablet and half way across on a
+   * long phone. Full power stops just short of the far side — a cast that
+   * flies off the edge of the frame is not a better cast, it is one the player
+   * cannot read, and it makes the top of the power range feel identical.
    */
-  maxLaunchSpeed: 10.5,
-  minLaunchSpeed: 4.0,
+  fullPowerReach: 0.95,
+  minPowerReach: 0.22,
+  /**
+   * Ratio of achieved range to the flat-ground ballistic ideal, used to solve
+   * for the launch speed that reaches the target above.
+   *
+   * Slightly OVER one, which looks wrong until you remember the lure leaves a
+   * rod tip a metre and a half above the water and lands at water level. That
+   * head start more than pays for the air drag. Measured, not assumed — the
+   * first guess of 0.8 sent every cast into the far bank.
+   */
+  dragEfficiency: 1.05,
   /** Gravity on the airborne lure (world units/s²). */
   gravity: 9.8,
   /** Wind displacement per unit of wind speed (kt) per second, airborne only. */

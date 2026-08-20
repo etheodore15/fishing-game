@@ -145,7 +145,12 @@ export class Trip {
   /** §6.2 — vector length is power, angle is direction. */
   private launch(nx: number, ny: number, dx: number, dy: number, power: number, worldWidth: number): void {
     this.lastOutcome = null
-    const speed = lerp(CAST.minLaunchSpeed, CAST.maxLaunchSpeed, power)
+    // Solve for the launch speed that reaches the wanted share of the water.
+    // Ideal ballistic range is v^2/g at 45 degrees; drag eats a fifth of it.
+    // Casting at any other angle falls short, which is the skill in it.
+    const span = Math.max(1, worldWidth - this.rod.tipX)
+    const reach = lerp(CAST.minPowerReach, CAST.fullPowerReach, power) * span
+    const speed = Math.sqrt((reach * CAST.gravity) / CAST.dragEfficiency)
     // A flick up-screen throws the lure out; screen y is inverted from world y.
     this.lureVX = dx * speed
     this.lureVY = dy * speed
