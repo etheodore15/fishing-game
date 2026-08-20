@@ -26,7 +26,10 @@ export class BaitRenderer {
   private readonly mesh: Mesh<Geometry, Shader>
   private readonly uniforms: { uPalette: Float32Array; uAlpha: number }
 
-  constructor(readonly capacity: number) {
+  readonly capacity: number
+
+  constructor(capacity: number) {
+    this.capacity = capacity
     this.vertices = new Float32Array(capacity * VERTS_PER_AGENT * FLOATS_PER_VERTEX)
     this.buffer = new Buffer({ data: this.vertices, usage: BufferUsage.VERTEX | BufferUsage.COPY_DST })
 

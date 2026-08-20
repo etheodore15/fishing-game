@@ -30,6 +30,15 @@ test('height and flow agree: the water is falling on a run-out', () => {
   }
 })
 
+test('the standalone module and the game agree on the water', () => {
+  // §15.1 keeps sim/tide.ts dependency-free so it can be lifted into a shared
+  // package, which means it carries its own defaults — and two sources of
+  // truth for the same number will drift. They drifted once already.
+  assert.equal(DEFAULT_TIDE.rangeM, TIDE.rangeM)
+  assert.equal(DEFAULT_TIDE.meanM, TIDE.meanM)
+  assert.equal(DEFAULT_TIDE.cycleRealSeconds, TIDE.cycleRealSeconds)
+})
+
 test('the tide covers its full declared range', () => {
   let lo = Infinity
   let hi = -Infinity

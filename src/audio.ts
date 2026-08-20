@@ -31,7 +31,11 @@ export type Cue =
 /** A one-pole lowpass. Enough shaping for cues this short. */
 class LowPass {
   private z = 0
-  constructor(private a: number) {}
+  private a: number
+
+  constructor(a: number) {
+    this.a = a
+  }
   set cutoff(a: number) {
     this.a = Math.min(1, Math.max(0.001, a))
   }

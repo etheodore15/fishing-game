@@ -92,11 +92,14 @@ export class World {
     lightAngle: 0, lightElev: 0.5, lightLevel: 1, glare: 0,
   }
 
-  constructor(
-    readonly chapter: Chapter,
-    private readonly stage: Stage,
-    private readonly quality: Quality,
-  ) {
+  readonly chapter: Chapter
+  private readonly stage: Stage
+  private readonly quality: Quality
+
+  constructor(chapter: Chapter, stage: Stage, quality: Quality) {
+    this.chapter = chapter
+    this.stage = stage
+    this.quality = quality
     this.water = new WaterField(bathymetrySeed(chapter.bathymetry))
     this.water.octaves = quality.settings.waterOctaves
 
@@ -427,7 +430,8 @@ export class World {
     // World-space children draw in metres; one container carries the mapping.
     for (const c of [this.worldLayer, this.aboveWorldLayer]) {
       c.scale.set(vp.pxPerM)
-      c.y = vp.waterlinePx
+      // Mean water, not the live waterline — see the note in render/layers.ts.
+      c.y = vp.meanWaterlinePx
     }
 
     const lightX = Math.sin(s.lightAngle)

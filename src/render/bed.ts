@@ -151,11 +151,15 @@ export class Bed {
   }
 
   /**
-   * Follow the tide. Two sprite positions and one texture frame per frame —
-   * nothing is re-rasterised.
+   * Track the waterline.
+   *
+   * The bed itself does NOT move: it is the bottom of an estuary, and the whole
+   * point of a tide is that the water moves and the ground does not. What moves
+   * is the cut between the submerged sprite and the one drawn over the water —
+   * which is how the oyster racks go from awash to standing clear.
    */
   follow(vp: Viewport, resolution: number): void {
-    const y = this.baseY - vp.tideOffsetM * vp.pxPerM
+    const y = this.baseY
     this.view.y = y
     this.aboveView.y = y
 

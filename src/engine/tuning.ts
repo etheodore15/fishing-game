@@ -14,16 +14,31 @@ export const GESTURE = {
   tapMaxMs: 180,
   /** Press duration (ms) after which a hold begins emitting. */
   holdMinMs: 180,
-  /** Minimum flick travel (px) to count as a cast. */
-  flickMinPx: 48,
-  /** Flick travel (px) that maps to full cast power. */
-  flickMaxPx: 420,
-  /** A flick must complete within this window (ms) to read as a flick. */
-  flickMaxMs: 500,
-  /** Velocity samples kept for flick vector estimation. */
-  flickSamples: 5,
-  /** Sample age (ms) beyond which a sample is dropped from the flick vector. */
-  flickSampleMaxAgeMs: 120,
+  /** Minimum travel (px) for a press to be a cast at all. */
+  flickMinPx: 40,
+  /**
+   * Cast power comes from how far the thumb travelled OR how fast it was
+   * moving, whichever is more generous — a long deliberate sweep and a short
+   * sharp snap both read as a big cast, which is what people expect a flick to
+   * do. Both are in screen-relative units so a phone and a tablet feel alike.
+   */
+  /** Travel that reaches full power, as a fraction of the viewport diagonal. */
+  flickFullTravel: 0.40,
+  /** Speed that reaches full power, in viewport diagonals per second. */
+  flickFullSpeed: 2.4,
+  /** Speed below which a sweep carries no power of its own. */
+  flickIdleSpeed: 0.35,
+  /**
+   * A flick must complete within this window (ms).
+   *
+   * Generous on purpose: a device busy compiling shaders can stretch a 200ms
+   * thumb flick well past a tight deadline, and a cast that is silently
+   * swallowed is the worst possible failure for the one gesture that starts
+   * the game.
+   */
+  flickMaxMs: 900,
+  /** Samples kept for the speed estimate. About 130ms at 60Hz. */
+  flickSamples: 8,
   /** hold → release → hold within this window (ms) reads as a hop. */
   hopGapMaxMs: 320,
 } as const
@@ -120,8 +135,13 @@ export const TIDE = {
   cycleRealSeconds: 360,
   /** In-game minutes the cycle represents (chapter JSON tideCycleMinutes). */
   cycleGameMinutes: 360,
-  /** Tidal range in metres, low to high. */
-  rangeM: 1.6,
+  /**
+   * Tidal range in metres, low to high.
+   *
+   * A real range for this coast is 1.2-1.8m. At the shallow end of that the
+   * flat still visibly drains without dead low turning half the frame into sky.
+   */
+  rangeM: 1.4,
   /** Mean water height in metres. */
   meanM: 0.9,
 } as const

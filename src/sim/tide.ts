@@ -24,7 +24,7 @@ export interface TideConfig {
 
 export const DEFAULT_TIDE: TideConfig = {
   cycleRealSeconds: 360,
-  rangeM: 1.6,
+  rangeM: 1.4,
   meanM: 0.9,
   slackThreshold: 0.3,
   phaseOffset: 0.62,

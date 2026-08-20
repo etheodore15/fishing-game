@@ -22,6 +22,27 @@ export type GestureEvent =
 
 type Listener = (e: GestureEvent) => void
 
+/**
+ * Cast power from a gesture, 0-1.
+ *
+ * Pure and exported so it can be tested without a DOM: this is the single most
+ * important number in the game's feel, and it was wrong for a long time
+ * without anything noticing.
+ *
+ * @param distPx    total travel of the gesture, start to finish
+ * @param peakSpeed fastest sampled speed, in viewport diagonals per second
+ * @param diagonal  viewport diagonal in px, so the feel is screen-relative
+ */
+export function castPower(distPx: number, peakSpeed: number, diagonal: number): number {
+  const diag = diagonal || 1
+  const minFraction = GESTURE.flickMinPx / diag
+  const travelSpan = Math.max(1e-4, GESTURE.flickFullTravel - minFraction)
+  const byTravel = (distPx / diag - minFraction) / travelSpan
+  const speedSpan = Math.max(1e-4, GESTURE.flickFullSpeed - GESTURE.flickIdleSpeed)
+  const bySpeed = (peakSpeed - GESTURE.flickIdleSpeed) / speedSpan
+  return Math.min(1, Math.max(0, Math.max(byTravel, bySpeed)))
+}
+
 interface Sample {
   x: number
   y: number
@@ -50,7 +71,10 @@ export class InputRouter {
   /** Reused so the router allocates nothing per pointer event. */
   private readonly scratch: Sample = { x: 0, y: 0, t: 0 }
 
-  constructor(private readonly el: HTMLElement) {
+  private readonly el: HTMLElement
+
+  constructor(el: HTMLElement) {
+    this.el = el
     el.addEventListener('pointerdown', this.onDown, { passive: false })
     el.addEventListener('pointermove', this.onMove, { passive: false })
     el.addEventListener('pointerup', this.onUp, { passive: false })
@@ -156,7 +180,7 @@ export class InputRouter {
       return
     }
 
-    const flick = this.resolveFlick(e.timeStamp)
+    const flick = this.resolveFlick(e.clientX, e.clientY, e.timeStamp)
     if (flick) {
       this.lastReleaseWasHold = false
       this.emit(flick)
@@ -192,29 +216,42 @@ export class InputRouter {
   }
 
   /**
-   * A flick is measured from the recent sample window, not from pointerdown —
-   * a slow drag that ends in a snap should read as the snap.
+   * Resolve a cast.
+   *
+   * Power is the greater of how far the thumb went and how fast it was going,
+   * both measured against the size of the screen so the gesture feels the same
+   * on a phone and a tablet.
+   *
+   * This used to measure displacement across the last few samples only — about
+   * eighty milliseconds — and score that against a fixed pixel span. That is a
+   * velocity dressed up as a distance: a full-blooded swipe across the screen
+   * came out at a tenth of full power, so every cast landed a couple of metres
+   * from the rod tip.
    */
-  private resolveFlick(endT: number): GestureEvent | null {
+  private resolveFlick(endX: number, endY: number, endT: number): GestureEvent | null {
     if (endT - this.startT > GESTURE.flickMaxMs) return null
-    let first: Sample | null = null
-    for (const s of this.samples) {
-      if (endT - s.t <= GESTURE.flickSampleMaxAgeMs) {
-        first = s
-        break
-      }
-    }
-    const last = this.samples[this.samples.length - 1]
-    if (!first || !last || first === last) return null
 
-    const dx = last.x - first.x
-    const dy = last.y - first.y
+    // Distance is the whole gesture, start to finish. Nothing partial.
+    const dx = endX - this.startX
+    const dy = endY - this.startY
     const dist = Math.hypot(dx, dy)
     if (dist < GESTURE.flickMinPx) return null
 
-    const span = GESTURE.flickMaxPx - GESTURE.flickMinPx
-    const power = Math.min(1, (dist - GESTURE.flickMinPx) / span)
-    const { nx, ny } = this.norm(first.x, first.y)
+    const r = this.el.getBoundingClientRect()
+    const diagonal = Math.hypot(r.width, r.height) || 1
+
+    // Peak speed across the sample window, in diagonals per second.
+    let peak = 0
+    for (let i = 1; i < this.samples.length; i++) {
+      const a = this.samples[i - 1]!
+      const b = this.samples[i]!
+      const dt = (b.t - a.t) / 1000
+      if (dt <= 0) continue
+      peak = Math.max(peak, Math.hypot(b.x - a.x, b.y - a.y) / diagonal / dt)
+    }
+
+    const power = castPower(dist, peak, diagonal)
+    const { nx, ny } = this.norm(this.startX, this.startY)
     return {
       type: 'flick',
       nx,

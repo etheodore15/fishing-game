@@ -64,13 +64,24 @@ export class Trip {
     onOutcome(outcome: FightOutcome, fish: Fish): void
   }
 
+  private readonly lure: LureState
+  private readonly water: WaterField
+  private readonly cond: Conditions
+  private readonly fishes: readonly Fish[]
+  private readonly events: TripEvents
+
   constructor(
-    private readonly lure: LureState,
-    private readonly water: WaterField,
-    private readonly cond: Conditions,
-    private readonly fishes: readonly Fish[],
-    private readonly events: TripEvents,
+    lure: LureState,
+    water: WaterField,
+    cond: Conditions,
+    fishes: readonly Fish[],
+    events: TripEvents,
   ) {
+    this.lure = lure
+    this.water = water
+    this.cond = cond
+    this.fishes = fishes
+    this.events = events
     this.line.reset(BUTT_X, -1, BUTT_X + 0.2, -1)
     this.surfaceAt = (x) => this.cond.surfaceTop(x)
     this.fightEvents = {
@@ -241,13 +252,16 @@ export class Trip {
   private stepWork(dt: number, t: number, surfaceAt: (x: number) => number): void {
     this.sinceLanded += dt
 
-    // A held retrieve is a steady swim back toward the rod.
+    // A held retrieve is a steady swim back toward the angler.
+    //
+    // Horizontally toward the rod, and only gently upward — aiming the lure at
+    // the rod TIP pointed it at a spot a metre and a half in the air, so a
+    // steady wind planed it to the surface and skied it home. A lure swims; it
+    // does not water-ski.
     if (this.holding) {
-      const toRodX = this.rod.tipX - this.lure.x
-      const toRodY = this.rod.tipY - this.lure.y
-      const d = Math.hypot(toRodX, toRodY) || 1
-      this.lureVX = lerp(this.lureVX, (toRodX / d) * 0.95, 1 - Math.exp(-dt * 6))
-      this.lureVY = lerp(this.lureVY, (toRodY / d) * 0.95, 1 - Math.exp(-dt * 6))
+      const dir = Math.sign(this.rod.tipX - this.lure.x) || -1
+      this.lureVX = lerp(this.lureVX, dir * 0.95, 1 - Math.exp(-dt * 6))
+      this.lureVY = lerp(this.lureVY, -0.16, 1 - Math.exp(-dt * 4))
       this.mark('steady', t, 0)
     } else {
       // Otherwise it sinks and goes with the tide, which is most of the game.

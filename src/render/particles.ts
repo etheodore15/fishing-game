@@ -20,7 +20,10 @@ export class ParticleRenderer {
    * @param encodeSRGB true for the layer that draws over the finished water,
    *                   false for the one that draws into the refraction target.
    */
-  constructor(readonly capacity: number, encodeSRGB: boolean) {
+  readonly capacity: number
+
+  constructor(capacity: number, encodeSRGB: boolean) {
+    this.capacity = capacity
     this.vertices = new Float32Array(capacity * VERTS_PER_PARTICLE * FLOATS_PER_VERTEX)
     this.buffer = new Buffer({ data: this.vertices, usage: BufferUsage.VERTEX | BufferUsage.COPY_DST })
 

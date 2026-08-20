@@ -56,7 +56,10 @@ export class ParticleField {
   private liveCount = 0
   private readonly rand = rng(1213)
 
-  constructor(readonly capacity: number) {
+  readonly capacity: number
+
+  constructor(capacity: number) {
+    this.capacity = capacity
     this.x = new Float32Array(capacity)
     this.y = new Float32Array(capacity)
     this.vx = new Float32Array(capacity)

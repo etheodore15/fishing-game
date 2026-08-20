@@ -26,10 +26,13 @@ export class GameLoop {
   /** Beyond this many sub-steps we drop simulated time rather than spiral. */
   readonly maxSubSteps = 5
 
-  constructor(
-    private readonly clock: Clock,
-    private readonly handlers: LoopHandlers,
-  ) {}
+  private readonly clock: Clock
+  private readonly handlers: LoopHandlers
+
+  constructor(clock: Clock, handlers: LoopHandlers) {
+    this.clock = clock
+    this.handlers = handlers
+  }
 
   start(): void {
     if (this.running) return

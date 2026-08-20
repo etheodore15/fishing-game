@@ -2,38 +2,47 @@ import { Container } from 'pixi.js'
 
 /**
  * World space is metres. x runs right from the angler's gunwale, y runs down
- * from mean water level, so y is literally depth and the species JSON's
+ * from MEAN water level, so y is literally depth and the species JSON's
  * habitat.depthM needs no conversion.
  *
  * The scale is uniform in both axes — a 60cm flathead has to be 60cm long
  * whichever way it is pointing.
+ *
+ * The vertical origin is mean water and nothing else. `meanWaterlinePx` places
+ * world objects; `waterlinePx` is only ever *where the surface has got to*, for
+ * the shader to draw it. Using the live waterline as the origin counts the tide
+ * twice: the bed then rises and falls with the surface, so the water is the
+ * same depth on screen at every state of the tide — which is the one thing this
+ * game is about — and anything floating renders a tide's worth away from the
+ * water it is supposed to be floating on.
  */
 export class Viewport {
   widthPx = 1
   heightPx = 1
   pxPerM = 1
-  /** Screen y (px) of mean water level. Tide moves this. */
+  /** Screen y (px) the water has actually risen or fallen to. For drawing the
+   *  surface — never for placing anything in the world. */
   waterlinePx = 0
   /** Screen y fraction of mean water level, for the water shader. */
   waterlineFrac = 0.29
   /** Metres of world visible across the viewport. */
   worldWidth = 14
   /** Metres of world visible top to bottom. */
-  worldHeight = 7.0
+  worldHeight = 6.0
 
-  /** Screen y (px) of MEAN water level, ignoring the tide. Baked art uses this
-   *  so a tide change is a translation rather than a re-rasterisation. */
+  /** Screen y (px) of mean water level. The origin for everything in world space. */
   meanWaterlinePx = 0
 
   /**
    * Metres of sky above mean water level.
    *
-   * Sized by the rod, not by taste: at the top of the tide the water is 0.8m
-   * above mean, and the rod tip has to stay clear of it and stay in frame.
+   * Sized by the rod, not by taste: the rod tip sits about 1.5m up and has to
+   * stay in frame and clear of the top of the tide. Any more than that is sky
+   * bought at the water's expense.
    */
-  private readonly airM = 2.4
+  private readonly airM = 2.0
   /** Metres of water shown below mean water level. */
-  private readonly waterM = 4.6
+  private readonly waterM = 4.0
 
   /** Tide offset in metres, added to the waterline. */
   tideOffsetM = 0
@@ -60,7 +69,7 @@ export class Viewport {
   }
 
   toScreenY(wy: number): number {
-    return this.waterlinePx + wy * this.pxPerM
+    return this.meanWaterlinePx + wy * this.pxPerM
   }
 
   toWorldX(sx: number): number {
@@ -68,7 +77,7 @@ export class Viewport {
   }
 
   toWorldY(sy: number): number {
-    return (sy - this.waterlinePx) / this.pxPerM
+    return (sy - this.meanWaterlinePx) / this.pxPerM
   }
 }
 
