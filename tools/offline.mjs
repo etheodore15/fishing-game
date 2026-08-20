@@ -7,13 +7,10 @@
  *
  * Usage: node tools/offline.mjs [url]
  */
-import { chromium } from 'playwright'
+import { launchChromium } from './browser.mjs'
 
 const url = process.argv[2] ?? 'http://localhost:4173/fishing-game/'
-const browser = await chromium.launch({
-  executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
-})
+const browser = await launchChromium()
 const context = await browser.newContext({ viewport: { width: 1280, height: 720 } })
 const page = await context.newPage()
 

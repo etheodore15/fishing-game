@@ -12,18 +12,11 @@
  *
  * Usage: node tools/perf.mjs [url]
  */
-import { chromium } from 'playwright'
+import { SOFTWARE_GL, launchChromium } from './browser.mjs'
 
 const url = process.argv[2] ?? 'http://localhost:4173/fishing-game/'
-const browser = await chromium.launch({
-  executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
-  args: [
-    '--use-gl=angle',
-    '--use-angle=swiftshader',
-    '--enable-unsafe-swiftshader',
-    '--enable-precise-memory-info',
-    '--js-flags=--expose-gc',
-  ],
+const browser = await launchChromium({
+  args: [...SOFTWARE_GL, '--enable-precise-memory-info', '--js-flags=--expose-gc'],
 })
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } })
 
