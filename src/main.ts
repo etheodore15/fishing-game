@@ -1,4 +1,5 @@
 declare const __BUILD_ID__: string
+declare const __ENABLE_SW__: boolean
 
 import { createRoot } from 'react-dom/client'
 import { createElement } from 'react'
@@ -148,7 +149,7 @@ async function boot(): Promise<void> {
  * first frame so it never competes with boot for bandwidth.
  */
 function registerServiceWorker(): void {
-  if (!import.meta.env.PROD || !('serviceWorker' in navigator)) return
+  if (!__ENABLE_SW__ || !import.meta.env.PROD || !('serviceWorker' in navigator)) return
   const base = new URL(import.meta.env.BASE_URL, location.href)
   const url = new URL(`sw.js?v=${__BUILD_ID__}`, base)
   navigator.serviceWorker.register(url, { scope: base.pathname }).catch((err) => {

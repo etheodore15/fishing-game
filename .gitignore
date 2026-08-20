@@ -4,3 +4,4 @@ dist/
 *.local
 src/art/atlas.generated.ts
 scratch/
+dist-single/

@@ -380,3 +380,34 @@ html, body {
   max-width: 26rem;
   text-align: left;
 }
+
+/*
+ * Portrait.
+ *
+ * §12 asks the manifest for a landscape lock, but that is a request an
+ * installed PWA's host may decline and a browser tab ignores outright — and
+ * the scene is composed around a horizontal stretch of water with the rod
+ * entering from the corner. Rather than reflow a composition that only works
+ * one way round, say so, in the game's own voice and its own palette.
+ */
+@media (orientation: portrait) and (max-width: 900px) {
+  #app::after {
+    content: 'Turn the phone sideways.';
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 var(--edge);
+    text-align: center;
+    background: #03070c;
+    color: var(--paper);
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: clamp(1.1rem, 5vw, 1.8rem);
+    /* The overlay is a message, not a wall: it must never eat a gesture. */
+    pointer-events: none;
+  }
+}
