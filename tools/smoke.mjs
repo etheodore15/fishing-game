@@ -9,14 +9,14 @@
  * Usage: node tools/smoke.mjs [url] [outfile] [waitMs]
  */
 import { writeFileSync } from 'node:fs'
-import { launchChromium } from './browser.mjs'
+import { contextOptions, launchChromium } from './browser.mjs'
 
 const url = process.argv[2] ?? 'http://localhost:4173/fishing-game/'
 const out = process.argv[3] ?? 'scratch/smoke.png'
 const waitMs = Number(process.argv[4] ?? 4000)
 
 const browser = await launchChromium()
-const page = await browser.newPage({ viewport: { width: 1280, height: 720 } })
+const page = await browser.newPage(contextOptions({ viewport: { width: 1280, height: 720 } }))
 
 const errors = []
 const logs = []

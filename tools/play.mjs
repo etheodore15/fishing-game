@@ -9,14 +9,14 @@
  * Usage: node tools/play.mjs [url]
  */
 import { mkdirSync } from 'node:fs'
-import { launchChromium } from './browser.mjs'
+import { contextOptions, launchChromium } from './browser.mjs'
 
 const url = process.argv[2] ?? 'http://localhost:4173/fishing-game/'
 const OUT = 'scratch/play'
 mkdirSync(OUT, { recursive: true })
 
 const browser = await launchChromium()
-const page = await browser.newPage({ viewport: { width: 1280, height: 720 } })
+const page = await browser.newPage(contextOptions({ viewport: { width: 1280, height: 720 } }))
 
 const errors = []
 page.on('console', (m) => {

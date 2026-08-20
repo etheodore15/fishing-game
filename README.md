@@ -1,5 +1,8 @@
 # Slack Water
 
+**Play it: https://etheodore15.github.io/fishing-game/** — landscape, and it
+installs to a homescreen.
+
 A story-driven 2D fishing game for the NSW coast between Lake Macquarie and
 Seal Rocks. Installable PWA, offline-capable, no backend, no accounts.
 
@@ -28,6 +31,9 @@ Four harnesses check the things unit tests cannot:
 | `npm run play` | A whole trip, driven by real pointer gestures: cast, work, hook up, fight, resolve. Most of the bugs in the git history came out of this. |
 | `npm run offline` | The save survives a reload and the game cold-starts with the network switched off. |
 | `npm run perf` | Draw calls per frame against §11's cap of 40, and heap retention while rendering. |
+
+Each takes a URL, so they can be pointed at a deployment as easily as at
+`vite preview`.
 
 Two more render pieces of generated art at a readable size, because neither is
 reviewable in situ: `npm run rig` (the fish rig, 40 pixels long and underwater)
@@ -60,6 +66,19 @@ Rules the codebase holds to, all from the spec:
   number, and none may be added.
 - **Bust-ups are measured, never triggered.** If the bait is showering, a
   predator is genuinely inside the school.
+
+## Deploying
+
+A push to `main` runs the gates and publishes `dist/` to the `gh-pages`
+branch, which is what §3 specifies. Pages serves that branch at
+`https://<owner>.github.io/<repo>/`, and `BASE_PATH` is derived from the
+repository name so a fork or a rename needs no edit.
+
+Worth knowing if you ever start this from a bare repository: the newer
+"Pages as an Actions source" flow cannot bootstrap itself, because
+`GITHUB_TOKEN` may deploy to a Pages site but may not create one. Pushing a
+`gh-pages` branch enables Pages on its own, which is why the deploy takes
+that route.
 
 ## Where this build departs from the spec
 

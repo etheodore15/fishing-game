@@ -23,7 +23,35 @@ export const SOFTWARE_GL = [
   '--enable-unsafe-swiftshader',
 ]
 
+/**
+ * Proxy settings, when the environment has one.
+ *
+ * Some sandboxes route outbound HTTPS through a local intercepting proxy that
+ * curl picks up from the environment but Chromium does not, so a harness
+ * pointed at a public URL fails with ERR_CONNECTION_RESET while every other
+ * tool works. Only applies when a proxy is actually configured; CI has none
+ * and is unaffected.
+ */
+export function proxyOptions() {
+  const server = process.env.HTTPS_PROXY ?? process.env.https_proxy
+  return server ? { proxy: { server, bypass: process.env.NO_PROXY ?? '' } } : {}
+}
+
+/**
+ * Context options. Behind an intercepting proxy the certificate chain is the
+ * proxy's own, which Chromium has no reason to trust — so TLS verification is
+ * relaxed there and only there.
+ */
+export function contextOptions(extra = {}) {
+  const proxied = Boolean(process.env.HTTPS_PROXY ?? process.env.https_proxy)
+  return { ...(proxied ? { ignoreHTTPSErrors: true } : {}), ...extra }
+}
+
 export function launchChromium({ args = SOFTWARE_GL } = {}) {
   const executablePath = chromiumPath()
-  return chromium.launch({ args, ...(executablePath ? { executablePath } : {}) })
+  return chromium.launch({
+    args,
+    ...(executablePath ? { executablePath } : {}),
+    ...proxyOptions(),
+  })
 }
