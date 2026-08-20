@@ -84,6 +84,22 @@ const OFF_ANAL = OFF_DORSAL + DORSAL_VERTS
 const OFF_PECTORAL = OFF_ANAL + ANAL_VERTS
 const OFF_CAUDAL = OFF_PECTORAL + PECTORAL_VERTS
 
+/**
+ * Where each part sits in the vertex buffer.
+ *
+ * Exported so the journal's species plate can be traced from the same rig the
+ * player just caught, rather than from a second, hand-authored path set that
+ * could drift away from it (§8.7).
+ */
+export const PARTS = {
+  body: { offset: OFF_BODY, pairs: STATIONS },
+  outline: { offset: OFF_OUTLINE, pairs: OUTLINE_PAIRS },
+  dorsal: { offset: OFF_DORSAL, pairs: DORSAL.to - DORSAL.from + 1 },
+  anal: { offset: OFF_ANAL, pairs: ANAL.to - ANAL.from + 1 },
+  pectoral: { offset: OFF_PECTORAL, pairs: 0 },
+  caudal: { offset: OFF_CAUDAL, pairs: CAUDAL_RAYS },
+} as const
+
 /** Triangle indices. Topology never changes, so this is built once. */
 export function buildIndices(): Uint32Array {
   const idx: number[] = []

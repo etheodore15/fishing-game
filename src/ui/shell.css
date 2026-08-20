@@ -203,3 +203,130 @@ html, body {
   background: #12181c;
   color: var(--paper);
 }
+
+/* ---- journal (§5.5) ---- */
+.journal {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background: #171a17;
+  padding: calc(var(--safe-t) + 12px) calc(var(--safe-r) + var(--edge))
+    calc(var(--safe-b) + 12px) calc(var(--safe-l) + var(--edge));
+  pointer-events: auto;
+}
+
+.journal-spread {
+  display: flex;
+  gap: clamp(8px, 2vw, 26px);
+  align-items: stretch;
+  justify-content: center;
+  min-height: 0;
+  flex: 1;
+}
+
+.journal-page {
+  height: 100%;
+  max-height: 100%;
+  width: auto;
+  filter: drop-shadow(0 10px 26px rgba(0, 0, 0, 0.55));
+}
+
+.journal-page .paper { fill: #e9dfc4; }
+.journal-page .rules line { stroke: #b9ac8a; stroke-width: 0.12; opacity: 0.5; }
+.journal-page .foxing path { fill: #8a6a3c; }
+.journal-page .crease { stroke: #b5a684; stroke-width: 0.35; fill: none; opacity: 0.55; }
+
+.journal-page .ink path {
+  fill: none;
+  stroke: #2a2f3a;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.journal-page .heading path { stroke: #1d2530; }
+.journal-page .plate path { stroke: #3a3326; }
+.journal-page .bleed path { fill: none; stroke: #6a4a24; stroke-width: 3; opacity: 0.5; }
+
+.journal-foot {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  font-family: var(--font-utility);
+  font-size: 0.62rem;
+  letter-spacing: 0.2em;
+  text-transform: lowercase;
+  color: var(--paper);
+  opacity: 0.75;
+}
+
+.journal-dots { display: flex; align-items: center; gap: 0.55rem; }
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid var(--paper);
+  opacity: 0.55;
+}
+
+.dot.filled { background: var(--paper); opacity: 1; }
+
+.journal-nav {
+  position: absolute;
+  inset: auto var(--edge) calc(var(--safe-b) + 12px) auto;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.journal-nav button,
+.journal-close,
+.journal-skip {
+  font-family: var(--font-utility);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--paper);
+  background: transparent;
+  border: 1px solid currentColor;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 0.9rem;
+  cursor: pointer;
+}
+
+.journal-nav button:disabled { opacity: 0.3; cursor: default; }
+
+.journal-close {
+  position: absolute;
+  top: calc(var(--safe-t) + 12px);
+  right: calc(var(--safe-r) + var(--edge));
+}
+
+.journal-skip {
+  position: absolute;
+  bottom: calc(var(--safe-b) + 12px);
+  right: calc(var(--safe-r) + var(--edge));
+  opacity: 0.7;
+}
+
+.journal-open {
+  position: absolute;
+  top: calc(var(--safe-t) + 12px);
+  right: calc(var(--safe-r) + var(--edge));
+  font-family: var(--font-utility);
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--paper);
+  background: transparent;
+  border: 1px solid currentColor;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 0.9rem;
+  opacity: 0.75;
+  cursor: pointer;
+}

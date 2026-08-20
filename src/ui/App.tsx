@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { gameStore, useGame } from '../engine/store.ts'
 import type { World } from '../sim/world.ts'
 import { CatchCard } from './CatchCard.tsx'
+import { Journal } from './Journal.tsx'
 import { UtilityStrip } from './UtilityStrip.tsx'
 
 /**
@@ -28,11 +29,19 @@ export function App({ world }: { world: World }) {
   return (
     <>
       {screen === 'title' && <Title />}
+      {screen === 'journal' && <Journal chapterId={world.chapter.id} />}
       {screen === 'fishing' && (
         <>
           <UtilityStrip />
           {loss && <LossBanner kind={loss} />}
           {phase === 'log' && <CatchCard onDismiss={() => world.dismissLog()} />}
+          <button
+            className="journal-open"
+            data-interactive
+            onClick={() => gameStore.getState().setScreen('journal')}
+          >
+            Journal
+          </button>
         </>
       )}
     </>

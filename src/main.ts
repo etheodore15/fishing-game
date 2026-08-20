@@ -105,6 +105,7 @@ async function boot(): Promise<void> {
     world,
     clock,
     input,
+    store: gameStore,
   }))
 
   // The sim runs while the title card is up — the player should be able to read
