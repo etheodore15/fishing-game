@@ -42,7 +42,8 @@ export class Bed {
 
   /** Rebake only when the framing actually changed. */
   bake(renderer: import('pixi.js').Renderer, water: WaterField, vp: Viewport): void {
-    const key = `${Math.round(vp.widthPx)}x${Math.round(vp.heightPx)}:${water.structures.length}`
+    const resolution = renderer.resolution
+    const key = `${Math.round(vp.widthPx)}x${Math.round(vp.heightPx)}@${resolution}:${water.structures.length}`
     if (key === this.lastKey) return
     this.lastKey = key
 
@@ -53,8 +54,13 @@ export class Bed {
 
     this.bedRT?.destroy(true)
     this.structureRT?.destroy(true)
-    this.bedRT = RenderTexture.create({ width: w, height: h, antialias: true })
-    this.structureRT = RenderTexture.create({ width: w, height: h, antialias: true })
+    // Baked at the renderer's resolution so the hand-drawn edges stay crisp on
+    // a high-density screen. Resolution stays an internal detail of the
+    // texture: a TextureSource reports its width in logical units either way,
+    // so nothing downstream has to know or care.
+    const opts = { width: w, height: h, resolution, antialias: true }
+    this.bedRT = RenderTexture.create(opts)
+    this.structureRT = RenderTexture.create(opts)
 
     const g = new Graphics()
     this.drawBed(g, water, vp)
@@ -158,7 +164,7 @@ export class Bed {
    * is the cut between the submerged sprite and the one drawn over the water —
    * which is how the oyster racks go from awash to standing clear.
    */
-  follow(vp: Viewport, resolution: number): void {
+  follow(vp: Viewport): void {
     const y = this.baseY
     this.view.y = y
     this.aboveView.y = y
@@ -166,7 +172,13 @@ export class Bed {
     const tex = this.aboveSprite.texture
     if (!tex.source.width) return
     // Show only the rows of the bake that are above the live waterline.
-    const cut = Math.round((vp.waterlinePx - y) * resolution)
+    //
+    // Everything here is in logical pixels — the same units as the viewport —
+    // because a TextureSource reports its size that way whatever resolution it
+    // was baked at. Scaling this by the renderer resolution drew the structure
+    // at half size in the wrong place on any screen denser than 1x, which is
+    // to say on every phone.
+    const cut = Math.round(vp.waterlinePx - y)
     const clamped = Math.max(0, Math.min(tex.source.height, cut))
     this.aboveSprite.visible = clamped > 1
     if (!this.aboveSprite.visible || clamped === tex.frame.height) return
@@ -175,8 +187,8 @@ export class Bed {
     tex.frame.width = tex.source.width
     tex.frame.height = clamped
     tex.updateUvs()
-    this.aboveSprite.width = tex.frame.width / resolution
-    this.aboveSprite.height = tex.frame.height / resolution
+    this.aboveSprite.width = tex.frame.width
+    this.aboveSprite.height = tex.frame.height
   }
 
   /** Tint from the live palette. Called every frame; costs nothing. */

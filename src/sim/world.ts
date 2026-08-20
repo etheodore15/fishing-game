@@ -425,7 +425,7 @@ export class World {
 
     const palette = this.stage.livePalette
     this.bed.tint(palette)
-    this.bed.follow(vp, this.stage.app.renderer.resolution)
+    this.bed.follow(vp)
 
     // World-space children draw in metres; one container carries the mapping.
     for (const c of [this.worldLayer, this.aboveWorldLayer]) {

@@ -50,6 +50,8 @@ export class Stage {
   private foamCount = 0
   private quality!: QualitySettings
   private reducedMotion = false
+  private resizeObserver: ResizeObserver | null = null
+  private stopWatching: (() => void) | null = null
 
   async init(canvas: HTMLCanvasElement, quality: QualitySettings, reducedMotion: boolean): Promise<void> {
     this.quality = quality
@@ -69,7 +71,6 @@ export class Stage {
       // A mid-range phone at 3x DPR is drawing 3x the fragments for detail no
       // one can see through a halftone screen. Cap it.
       resolution: Math.min(globalThis.devicePixelRatio || 1, 2),
-      resizeTo: canvas.parentElement ?? undefined,
     })
     // §9 puts one authoritative clock in charge, and PixiJS's own tickers are
     // a second one. They are also the single largest allocator in the frame,
@@ -82,7 +83,7 @@ export class Stage {
     this.app.stage.addChild(this.root)
     this.buildTargets()
     this.app.renderer.on('resize', this.onResize)
-    this.onResize()
+    this.watchSize(canvas.parentElement ?? canvas)
   }
 
   private buildTargets(): void {
@@ -130,6 +131,45 @@ export class Stage {
   setReducedMotion(v: boolean): void {
     this.reducedMotion = v
     this.applyPrintPass()
+  }
+
+  /**
+   * Keep the canvas the size of its container.
+   *
+   * A ResizeObserver on the element rather than PixiJS's own `resizeTo`, which
+   * listens for the window's resize event. On Android that event can arrive
+   * before the layout has caught up with a rotation, so the measurement is of
+   * the shape the page used to be, and nothing fires again to correct it — the
+   * canvas is left at its portrait width on a landscape screen, rendering into
+   * a slice of the display with the rest left black.
+   *
+   * A ResizeObserver reports the element's box after layout, every time it
+   * actually changes, which is the question being asked.
+   */
+  private watchSize(container: HTMLElement): void {
+    const apply = () => {
+      const width = container.clientWidth
+      const height = container.clientHeight
+      // A zero measurement happens while the element is off-layout. Resizing to
+      // it would divide the world by nothing; wait for a real one.
+      if (width < 1 || height < 1) return
+      if (this.app.renderer.width === width && this.app.renderer.height === height) return
+      this.app.renderer.resize(width, height)
+    }
+
+    this.resizeObserver = new ResizeObserver(apply)
+    this.resizeObserver.observe(container)
+    // Belt and braces for the two events that move a phone's viewport without
+    // necessarily resizing the element synchronously.
+    globalThis.addEventListener('orientationchange', apply)
+    globalThis.visualViewport?.addEventListener('resize', apply)
+    this.stopWatching = () => {
+      this.resizeObserver?.disconnect()
+      globalThis.removeEventListener('orientationchange', apply)
+      globalThis.visualViewport?.removeEventListener('resize', apply)
+    }
+    apply()
+    this.onResize()
   }
 
   private readonly onResize = (): void => {
@@ -221,6 +261,7 @@ export class Stage {
   }
 
   destroy(): void {
+    this.stopWatching?.()
     this.app.renderer?.off('resize', this.onResize)
     this.app.destroy(true, { children: true })
   }
