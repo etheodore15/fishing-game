@@ -14,7 +14,7 @@
  * Usage: node --experimental-strip-types tools/bite-sim.ts [hopIntervalSec]
  */
 import { readFileSync } from 'node:fs'
-import { bathymetrySeed, type Chapter, type Species } from '../src/content/schema.ts'
+import { bathymetrySeed, type Chapter, type Lure, type Species } from '../src/content/schema.ts'
 import { TIDE, TIME_COMPRESSION } from '../src/engine/tuning.ts'
 import { rng } from '../src/art/noise.ts'
 import { Fish } from '../src/sim/fish.ts'
@@ -29,6 +29,14 @@ const DT = 1 / 60
 // without an import attribute the TypeScript here cannot carry. Read it.
 const json = <T,>(p: string): T => JSON.parse(readFileSync(new URL(p, import.meta.url), 'utf8')) as T
 const CHAPTER = json<Chapter>('../src/content/chapters/ch1-estuary.json')
+const LURES = ['soft-plastic', 'hard-body', 'metal-slug'].map((id) =>
+  json<Lure>(`../src/content/lures/${id}.json`),
+)
+const lureById = (id: string): Lure => {
+  const l = LURES.find((x) => x.id === id)
+  if (!l) throw new Error(`unknown lure: ${id}`)
+  return l
+}
 const SPECIES_BY_ID = new Map(
   CHAPTER.species.map((id) => [id, json<Species>(`../src/content/species/${id}.json`)]),
 )
@@ -120,6 +128,8 @@ export function runBite(opts: {
   onlySpecies?: string
   /** Start the tide this far into its cycle, to fish a different state. */
   tideShiftSec?: number
+  /** What is tied on. The plastic unless something else is asked for. */
+  lureId?: string
 } ): BiteRun {
   const ch = CHAPTER
   const water = new WaterField(bathymetrySeed(ch.bathymetry))
@@ -186,6 +196,7 @@ export function runBite(opts: {
     onCast: () => { casts += 1 }, onSplash: noop, onSnag: noop,
     onHeadshake: noop, onSurge: noop, onOutcome: (o) => { outcome = o },
   })
+  trip.tackle = lureById(opts.lureId ?? 'soft-plastic')
 
   const startHour = opts.startHour ?? ch.startHour
   const maxCasts = opts.maxCasts ?? 40
@@ -440,6 +451,25 @@ function rosterTable(): void {
     }
     console.log('')
   }
+  console.log('and what the tackle is worth — seconds of retrieve to a bite, and who took it:')
+  console.log(`  ${''.padEnd(14)}${scripts.map((x) => x.padEnd(22)).join('')}`)
+  for (const l of LURES) {
+    const row = scripts.map((script) => {
+      const runs = SEEDS.map((seed) =>
+        runBite({ hopIntervalSec: 1.2, script, seed, maxCasts: 14, tideShiftSec: 240, lureId: l.id }),
+      )
+      const bites = runs.filter((r) => r.species)
+      if (!bites.length) return 'none'.padEnd(22)
+      const mean = bites.reduce((a, r) => a + (r.timeToCommit ?? 0), 0) / bites.length
+      const tally = new Map<string, number>()
+      for (const r of bites) tally.set(r.species!, (tally.get(r.species!) ?? 0) + 1)
+      const top = [...tally].sort((a, b) => b[1] - a[1])[0]!
+      const who = top[0].replace('dusky-', '').replace('australian-', '')
+      return `${mean.toFixed(1)}s ${who} ${top[1]}/${bites.length}`.padEnd(22)
+    })
+    console.log(`  ${l.id.padEnd(14)}${row.join('')}`)
+  }
+  console.log('')
   console.log('and how each of them fights, played by someone watching the rod:')
   for (const id of CHAPTER.species) {
     const sp = speciesById(id)

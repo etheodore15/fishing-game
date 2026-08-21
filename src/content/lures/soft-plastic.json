@@ -1,0 +1,11 @@
+{
+  "id": "soft-plastic",
+  "displayName": "Soft Plastic",
+  "note": "Six inches of paddle-tail on a jighead. Hops off the bottom and hangs on the drop.",
+  "form": "paddle",
+  "lengthM": 0.16,
+  "action": { "hop": 1.0, "steady": 0.42, "twitch": 0.45 },
+  "sink": 1.0,
+  "reach": 1.0,
+  "unlockedBy": null
+}

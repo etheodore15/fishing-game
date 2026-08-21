@@ -1,8 +1,7 @@
 import { Buffer, BufferUsage, Container, Geometry, GlProgram, Mesh, Shader, UniformGroup } from 'pixi.js'
 import {
-  LURE_LENGTH_M,
-  LURE_MAX_HALF,
   LURE_STATIONS,
+  lureMaxHalf,
   lureShade,
   lureHalf,
   lureHeading,
@@ -15,6 +14,7 @@ import { SEGMENTS } from '../sim/line.ts'
 import { ROD_SAMPLES } from '../sim/rod.ts'
 import type { FishingLine } from '../sim/line.ts'
 import type { Rod } from '../sim/rod.ts'
+import type { Lure } from '../content/schema.ts'
 import type { LureState } from '../sim/types.ts'
 import tackleVert from './shaders/tackle.vert?raw'
 import tackleFrag from './shaders/tackle.frag?raw'
@@ -91,7 +91,7 @@ export class TackleRenderer {
    * show up until a phone starts dropping frames to collect it.
    */
   private readonly lurePose: LurePose = {
-    x: 0, y: 0, heading: 0, lengthM: LURE_LENGTH_M, t: 0, drive: 0,
+    x: 0, y: 0, heading: 0, form: 'paddle', lengthM: 0.16, t: 0, drive: 0,
   }
 
   /**
@@ -102,6 +102,7 @@ export class TackleRenderer {
     line: FishingLine,
     rod: Rod,
     lure: LureState,
+    tackle: Lure,
     tension: number,
     lineVisible: boolean,
     lureVisible: boolean,
@@ -141,13 +142,15 @@ export class TackleRenderer {
     pose.x = lure.x
     pose.y = lure.y
     pose.heading = this.lureAngle
+    pose.form = tackle.form
+    pose.lengthM = tackle.lengthM
     pose.t = t
     pose.drive = drive
     solveLure(pose)
     // The whole profile is scaled together rather than each station being
     // floored on its own: a minimum width applied per-station turns a tapered
     // body into a sausage, and the taper is the only reason it reads as a lure.
-    const widen = Math.max(1, (px * 1.8) / (LURE_MAX_HALF * LURE_LENGTH_M))
+    const widen = Math.max(1, (px * 1.8) / (lureMaxHalf(tackle.form) * tackle.lengthM))
     for (let i = 0; i < LURE_STATIONS; i++) {
       const [nx, ny] = normalAt(lureX, lureY, i, LURE_STATIONS)
       const halfWidth = lureVisible ? lureHalf[i]! * widen : 0

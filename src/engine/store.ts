@@ -4,7 +4,7 @@ import type { Hint } from '../sim/coach.ts'
 import type { TideState } from '../sim/tide.ts'
 import type { Tier } from './quality.ts'
 
-export type Screen = 'title' | 'fishing' | 'journal' | 'settings'
+export type Screen = 'title' | 'fishing' | 'journal' | 'settings' | 'tackle'
 /** §6: five phases, strictly ordered. */
 export type Phase = 'read' | 'cast' | 'work' | 'fight' | 'log'
 export type LossKind = 'line-break' | 'hook-pull' | 'bust-off' | 'snag'
@@ -44,6 +44,8 @@ export interface Settings {
   tierOverride: Tier | null
   reducedMotion: boolean
   guide: GuideMode
+  /** What is tied on. Falls back to the plastic if it is not in the box. */
+  lureId: string
 }
 
 export interface GameState {
@@ -98,7 +100,13 @@ export const gameStore = createStore<GameState>()((set) => ({
   restoring: null,
   hasSeenRestoration: false,
   chaptersCelebrated: [],
-  settings: { audio: true, tierOverride: null, reducedMotion: false, guide: 'auto' },
+  settings: {
+    audio: true,
+    tierOverride: null,
+    reducedMotion: false,
+    guide: 'auto',
+    lureId: 'soft-plastic',
+  },
   ready: false,
 
   setScreen: (screen) => set({ screen }),

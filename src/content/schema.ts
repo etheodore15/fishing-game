@@ -30,6 +30,37 @@ export interface Species {
 /** §6.3 — the three retrieve gestures a cadence signature can prefer. */
 export type CadenceKind = 'twitch' | 'steady' | 'hop'
 
+/** The silhouette families the lure rig knows how to solve. */
+export type LureForm = 'paddle' | 'minnow' | 'slug'
+
+/**
+ * What is tied on (§10.1's rule, applied to tackle).
+ *
+ * A lure is content for the same reason a species is: it is a set of numbers
+ * about how a thing behaves, and there is no code anywhere that knows the name
+ * of one. What makes lure choice a decision rather than a menu is `action` —
+ * every lure is good at one retrieve and poor at another, so choosing tackle
+ * and choosing a retrieve are the same choice made twice, and neither is worth
+ * anything without the other.
+ */
+export interface Lure {
+  id: string
+  displayName: string
+  /** One line about what it is for, in the journal's voice. */
+  note: string
+  form: LureForm
+  /** Nose to tail, metres. */
+  lengthM: number
+  /** How well it performs each retrieve. Multiplies the cadence quality. */
+  action: Record<CadenceKind, number>
+  /** Sink rate, as a multiple of the plastic's. */
+  sink: number
+  /** Cast distance, as a multiple of the plastic's. */
+  reach: number
+  /** Species that has to be landed before this is in the box. null ships. */
+  unlockedBy: string | null
+}
+
 export type StructureKind = 'weed-edge' | 'sand-drop' | 'oyster-racks'
 
 export interface UnlockRule {

@@ -1,9 +1,12 @@
-import type { Chapter, Species } from './schema.ts'
+import type { Chapter, Lure, Species } from './schema.ts'
 import { parsePage, type PageSource } from '../art/journalPage.ts'
 import flathead from './species/dusky-flathead.json'
 import tailor from './species/tailor.json'
 import salmon from './species/australian-salmon.json'
 import ch1 from './chapters/ch1-estuary.json'
+import softPlastic from './lures/soft-plastic.json'
+import hardBody from './lures/hard-body.json'
+import metalSlug from './lures/metal-slug.json'
 import p001 from './journal/p001.md?raw'
 import p002 from './journal/p002.md?raw'
 import p003 from './journal/p003.md?raw'
@@ -28,6 +31,24 @@ export const SPECIES: Record<string, Species> = {
 export const CHAPTERS: Record<string, Chapter> = {
   [ch1.id]: ch1 as Chapter,
 }
+
+/**
+ * The tackle box, in the order it fills up.
+ *
+ * The plastic ships. The other two are earned by landing the fish they are
+ * for, which is what makes bycatch worth having: a tailor is not a
+ * consolation prize, it is the hard-body.
+ */
+export const LURES: readonly Lure[] = [softPlastic as Lure, hardBody as Lure, metalSlug as Lure]
+
+export function lure(id: string): Lure {
+  const l = LURES.find((x) => x.id === id)
+  if (!l) throw new Error(`unknown lure: ${id}`)
+  return l
+}
+
+/** The one every trip starts with. */
+export const DEFAULT_LURE = LURES[0]!.id
 
 export function species(id: string): Species {
   const s = SPECIES[id]

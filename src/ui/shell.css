@@ -606,6 +606,80 @@ html, body {
   cursor: pointer;
 }
 
+/* ---- the tackle box ---- */
+.tackle { min-width: min(30rem, calc(100vw - 2 * var(--edge))); }
+
+.tackle-box {
+  list-style: none;
+  margin: 0 0 0.6rem;
+  padding: 0;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.tackle-slot { flex: 1 1 0; min-width: 0; }
+
+.tackle-slot button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  width: 100%;
+  min-height: 44px;
+  padding: 0.5rem 0.6rem 0.6rem;
+  background: transparent;
+  border: 1px solid rgba(18, 24, 28, 0.3);
+  color: #12181c;
+  cursor: pointer;
+}
+
+.tackle-slot.on button {
+  border-color: #12181c;
+  background: rgba(18, 24, 28, 0.07);
+}
+
+.tackle-slot.locked button {
+  cursor: default;
+  opacity: 0.4;
+  border-style: dashed;
+}
+
+/* Drawn by the same solve the water uses, so the sheet shows the real thing. */
+.tackle-lure {
+  width: clamp(64px, 12vh, 92px);
+  height: auto;
+}
+
+.tackle-lure path {
+  fill: #12181c;
+  stroke: none;
+}
+
+.tackle-slot.locked .tackle-lure path {
+  fill: none;
+  stroke: #12181c;
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.tackle-name {
+  font-family: var(--font-utility);
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.tackle-note {
+  font-family: var(--font-body);
+  font-size: 0.66rem;
+  line-height: 1.25;
+  opacity: 0.7;
+  text-wrap: balance;
+}
+
+.tackle .note { text-align: center; min-height: 2.6em; }
+
 /* ---- the end of a chapter ---- */
 .chapter-close h2 {
   font-family: var(--font-display);

@@ -58,6 +58,13 @@ export interface CoachInput {
   tension: number
   /** True while a hooked fish is visibly running. */
   running: boolean
+  /**
+   * Whether what is tied on actually goes down.
+   *
+   * A suspending hard-body left alone is not on the bottom, and telling the
+   * player it is would be the guide describing a lure it is not looking at.
+   */
+  lureSinks: boolean
 }
 
 /**
@@ -209,7 +216,9 @@ function workHint(i: CoachInput): Hint | null {
   if (i.sinceGesture > 3) {
     return {
       key: 'dead-lure',
-      text: "It's on the bottom. Hold to swim it home, or flick to cast again.",
+      text: i.lureSinks
+        ? "It's on the bottom. Hold to swim it home, or flick to cast again."
+        : "It's just sitting there. Hold to swim it home, or flick to cast again.",
       gesture: 'press',
     }
   }

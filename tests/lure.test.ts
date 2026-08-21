@@ -1,7 +1,6 @@
 import { strict as assert } from 'node:assert'
 import test from 'node:test'
 import {
-  LURE_LENGTH_M,
   LURE_STATIONS,
   lureHeading,
   lureHalf,
@@ -20,8 +19,11 @@ import {
  * exactly that difference.
  */
 
+/** The plastic, which is what ships and what these are about. */
+const LURE_LENGTH_M = 0.16
+
 const pose = (drive: number, t = 0.5) => {
-  solveLure({ x: 4, y: 1.5, heading: 0, lengthM: LURE_LENGTH_M, t, drive })
+  solveLure({ x: 4, y: 1.5, heading: 0, form: 'paddle', lengthM: LURE_LENGTH_M, t, drive })
 }
 
 /** Distance of each station from the straight line the lure would be at rest. */
@@ -110,7 +112,7 @@ test('a swimming lure points where it is going', () => {
 
 test('the body stays behind the nose, whichever way it points', () => {
   for (const heading of [0, Math.PI / 2, Math.PI, -2.1]) {
-    solveLure({ x: 4, y: 1.5, heading, lengthM: LURE_LENGTH_M, t: 0.3, drive: 0.8 })
+    solveLure({ x: 4, y: 1.5, heading, form: 'paddle', lengthM: LURE_LENGTH_M, t: 0.3, drive: 0.8 })
     const along = (i: number) =>
       (lureX[i]! - 4) * Math.cos(heading) + (lureY[i]! - 1.5) * Math.sin(heading)
     assert.ok(along(LURE_STATIONS - 1) < -LURE_LENGTH_M * 0.8, `tail led the nose at ${heading}`)

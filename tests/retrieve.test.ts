@@ -21,6 +21,7 @@ const base: CoachInput = {
   attentionSpecies: null,
   tension: 0.5,
   running: false,
+  lureSinks: true,
 }
 
 test('the guide names the cast before anything has been cast', () => {
@@ -225,11 +226,13 @@ test('a hop retrieve gets a bite inside a couple of casts', () => {
 })
 
 test('the wrong cadence still works, just slower', () => {
-  // The flat's own fish is the flathead and it wants a hop. A steady retrieve
-  // still raises something — three species share this water — but it takes
-  // longer to get there. Which of them takes it is tests/species.test.ts.
-  const hop = runBite({ hopIntervalSec: 1.2, script: 'hop' })
-  const steady = runBite({ hopIntervalSec: 1.2, script: 'steady' })
+  // The flat's own fish is the flathead, it wants a hop, and a plastic is what
+  // hops. A steady retrieve on the same lure still raises something — three
+  // species share this water — but it takes longer to get there. Fished on a
+  // run-in, so the fish that does want a steady is actually on; three wrongs
+  // at once (wrong lure, wrong tide, wrong retrieve) is allowed to be nothing.
+  const hop = runBite({ hopIntervalSec: 1.2, script: 'hop', tideShiftSec: 240 })
+  const steady = runBite({ hopIntervalSec: 1.2, script: 'steady', tideShiftSec: 240 })
   assert.notEqual(steady.timeToCommit, null, 'a steady retrieve never raised a fish')
   assert.ok(
     steady.timeToCommit! > hop.timeToCommit!,

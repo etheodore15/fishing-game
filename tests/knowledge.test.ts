@@ -115,6 +115,7 @@ const base: CoachInput = {
   attentionSpecies: null,
   tension: 0.5,
   running: false,
+  lureSinks: true,
 }
 
 test('the guide will not tell you what a fish you have never caught wants', () => {

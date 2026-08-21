@@ -1,0 +1,11 @@
+{
+  "id": "hard-body",
+  "displayName": "Hard-Body",
+  "note": "A shallow minnow. Darts when you twitch it and hangs there when you stop.",
+  "form": "minnow",
+  "lengthM": 0.11,
+  "action": { "hop": 0.5, "steady": 0.55, "twitch": 1.0 },
+  "sink": 0.25,
+  "reach": 0.85,
+  "unlockedBy": "tailor"
+}

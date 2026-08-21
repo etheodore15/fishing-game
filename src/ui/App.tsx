@@ -6,6 +6,7 @@ import { CatchCard } from './CatchCard.tsx'
 import { Guide } from './Guide.tsx'
 import { Journal } from './Journal.tsx'
 import { Settings } from './Settings.tsx'
+import { Tackle } from './Tackle.tsx'
 import { UtilityStrip } from './UtilityStrip.tsx'
 
 /**
@@ -38,6 +39,7 @@ export function App({ world }: { world: World }) {
       {screen === 'title' && <Title />}
       {screen === 'journal' && <Journal chapterId={world.chapter.id} />}
       {screen === 'settings' && <Settings onClose={() => gameStore.getState().setScreen('fishing')} />}
+      {screen === 'tackle' && <Tackle onClose={() => gameStore.getState().setScreen('fishing')} />}
       {screen === 'fishing' && (
         <>
           <UtilityStrip />
@@ -52,6 +54,15 @@ export function App({ world }: { world: World }) {
               onClick={() => gameStore.getState().setScreen('journal')}
             >
               Journal
+            </button>
+            {/* Between casts only. Nobody reties with a lure in the water. */}
+            <button
+              data-interactive
+              disabled={phase !== 'read'}
+              aria-label="Tackle box"
+              onClick={() => gameStore.getState().setScreen('tackle')}
+            >
+              Tackle
             </button>
             <button
               data-interactive

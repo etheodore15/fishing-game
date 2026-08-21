@@ -11,7 +11,8 @@ import { ParticleRenderer } from '../render/particles.ts'
 import { TackleRenderer } from '../render/tackle.ts'
 import type { SceneUniforms, Stage } from '../render/stage.ts'
 import { bathymetrySeed, type Chapter, type UnlockRule } from '../content/schema.ts'
-import { journalPage, species as speciesById } from '../content/index.ts'
+import { LURES, journalPage, species as speciesById } from '../content/index.ts'
+import { tackleFor } from './tackle.ts'
 import { clamp, rng } from '../art/noise.ts'
 import { Audio } from '../audio.ts'
 import { BaitSchool } from './boids.ts'
@@ -162,6 +163,7 @@ export class World {
       onOutcome: (outcome, fish) => this.onOutcome(outcome, fish),
     })
 
+    this.trip.tackle = tackleFor(LURES, gameStore.getState())
     this.spawnFish()
   }
 
@@ -289,6 +291,8 @@ export class World {
     }
     this.conditions.willingness = keenest
 
+    // What is tied on is a setting, and a setting can change between casts.
+    this.trip.tackle = tackleFor(LURES, gameStore.getState())
     this.trip.step(dt, t, this.wind.speedKt, this.water.windDir)
     this.bait.update(dt, this.water, this.conditions, this.fish)
     for (const f of this.fish) f.update(dt, this.water, this.conditions, this.lure)
@@ -519,6 +523,9 @@ export class World {
     i.attentionSpecies = seen && known.has(seen.id) ? seen.displayName : null
     i.tension = this.trip.fight.tension
     i.running = this.trip.fight.fish?.state === 'surge'
+    // A suspending hard-body never reaches the bottom, so the guide must not
+    // say it has.
+    i.lureSinks = this.trip.tackle.sink > 0.5
     state.setHint(hintFor(i))
   }
 
@@ -555,6 +562,7 @@ export class World {
     attentionSpecies: null,
     tension: 0,
     running: false,
+    lureSinks: true,
   }
 
   /** The most interested any fish is in the lure right now. */
@@ -617,6 +625,7 @@ export class World {
       this.trip.line,
       this.trip.rod,
       this.lure,
+      this.trip.tackle,
       this.trip.tension,
       this.trip.lineVisible,
       this.trip.lureVisible,

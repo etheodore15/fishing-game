@@ -1,7 +1,7 @@
 import { CAST, WORK } from '../engine/tuning.ts'
 import type { GestureEvent } from '../engine/input.ts'
 import { clamp, lerp, rng } from '../art/noise.ts'
-import type { CadenceKind } from '../content/schema.ts'
+import type { CadenceKind, Lure } from '../content/schema.ts'
 import type { Phase } from '../engine/store.ts'
 import { Fight, type FightOutcome } from './hookup.ts'
 import type { Fish } from './fish.ts'
@@ -40,6 +40,15 @@ export class Trip {
 
   /** Set while a loss banner is worth showing. */
   lastOutcome: FightOutcome | null = null
+
+  /**
+   * What is tied on.
+   *
+   * Set by the world from the player's tackle box, and read here for the three
+   * things a lure changes: how far it casts, how fast it sinks, and how well
+   * it does whatever the player is asking of it.
+   */
+  tackle!: Lure
 
   private lureVX = 0
   private lureVY = 0
@@ -183,7 +192,12 @@ export class Trip {
     // Ideal ballistic range is v^2/g at 45 degrees; drag eats a fifth of it.
     // Casting at any other angle falls short, which is the skill in it.
     const span = Math.max(1, worldWidth - this.rod.tipX)
-    const reach = lerp(CAST.minPowerReach, CAST.fullPowerReach, power) * span
+    // A forty-gram metal goes further than a soft plastic on the same swing,
+    // and neither of them may end up in the far bank.
+    const reach = Math.min(
+      lerp(CAST.minPowerReach, CAST.fullPowerReach, power) * span * this.tackle.reach,
+      span * 0.98,
+    )
     const speed = Math.sqrt((reach * CAST.gravity) / CAST.dragEfficiency)
     // A flick up-screen throws the lure out; screen y is inverted from world y.
     this.lureVX = dx * speed
@@ -314,9 +328,11 @@ export class Trip {
       this.lastGestureAt = t
     } else {
       // Otherwise it sinks and goes with the tide, which is most of the game.
-      // Terminal velocity lands near 0.8 m/s: a few seconds to the bottom of
-      // the flat, so letting it sink is a real choice with a real cost.
-      this.lureVY += 1.6 * dt
+      // Terminal velocity lands near 0.8 m/s for a jighead: a few seconds to
+      // the bottom of the flat, so letting it sink is a real choice with a real
+      // cost. A suspending hard-body barely goes down at all, and that is the
+      // whole difference between fishing the bottom and fishing the top.
+      this.lureVY += 1.6 * this.tackle.sink * dt
       this.lureVX += this.cond.flow * 0.32 * dt
       const damp = 1 - 1.9 * dt
       this.lureVX *= damp
@@ -420,6 +436,17 @@ export class Trip {
       this.lure.cadence = null
       this.lure.cadenceQuality = 0
       this.lure.cadenceHz = 0
+    }
+
+    // How well the thing on the end can actually do what it is being asked to.
+    // A metal hopped off the bottom is a metal hopped off the bottom: it will
+    // catch something eventually, and it is not what it is for.
+    if (this.lure.cadence) {
+      this.lure.cadenceQuality = clamp(
+        this.lure.cadenceQuality * this.tackle.action[this.lure.cadence],
+        0,
+        1,
+      )
     }
   }
 
