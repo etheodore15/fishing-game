@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { lureOutline } from '../art/lureRig.ts'
 import { LURES } from '../content/index.ts'
 import type { CadenceKind, Lure } from '../content/schema.ts'
@@ -33,6 +34,11 @@ export function Tackle({ onClose }: { onClose: () => void }) {
   const chosen = useGame((s) => s.settings.lureId)
   const box = unlockedLures(LURES, log)
   const have = new Set(box.map((l) => l.id))
+
+  // Opening the box is what clears the mark on the button that opens it.
+  useEffect(() => {
+    gameStore.getState().markSeen('lures', box.length)
+  }, [box.length])
 
   return (
     <div className="sheet tackle">

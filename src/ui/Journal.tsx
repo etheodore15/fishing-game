@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { gameStore, useGame } from '../engine/store.ts'
 import { chapter, journalPage, species as speciesById } from '../content/index.ts'
 import { knownSpecies } from '../sim/knowledge.ts'
@@ -77,6 +77,18 @@ export function Journal({ chapterId }: { chapterId: string }) {
   const sheet = showBack ? leaves.map((l) => l.id) : pages
   const base = restoringIndex >= 0 ? Math.floor(restoringIndex / 2) * 2 : spread * 2
   const visible = sheet.slice(base, base + 2)
+
+  /**
+   * Opening the fish tab is what clears the mark on the Journal button.
+   *
+   * Counted off catches alone, which is the same count the button compares
+   * against — the page the player was handed does not need to be gone and
+   * looked at, because they were handed it.
+   */
+  const landedSpecies = knownSpecies(catches).size
+  useEffect(() => {
+    if (view === 'species') gameStore.getState().markSeen('species', landedSpecies)
+  }, [view, landedSpecies])
 
   const finish = useCallback(() => gameStore.getState().finishRestoration(), [])
 

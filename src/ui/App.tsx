@@ -1,6 +1,9 @@
 import { useEffect } from 'react'
+import { LURES } from '../content/index.ts'
 import { gameStore, useGame } from '../engine/store.ts'
+import { knownSpecies } from '../sim/knowledge.ts'
 import { isChapterComplete } from '../sim/progress.ts'
+import { unlockedLures } from '../sim/tackle.ts'
 import type { World } from '../sim/world.ts'
 import { CatchCard } from './CatchCard.tsx'
 import { Guide } from './Guide.tsx'
@@ -22,9 +25,25 @@ export function App({ world }: { world: World }) {
   const phase = useGame((s) => s.phase)
   const loss = useGame((s) => s.loss)
   const restored = useGame((s) => s.pagesRestored)
+  const log = useGame((s) => s.catchLog)
+  const speciesSeen = useGame((s) => s.speciesSeen)
+  const luresSeen = useGame((s) => s.luresSeen)
   // The one pointer from the water to the book: a player who never opens the
   // journal never learns the chapter has an end.
   const pageOutstanding = !isChapterComplete(world.chapter, restored)
+
+  /**
+   * The two marks that say something has arrived.
+   *
+   * Both are a count of what the log has earned against a count of what the
+   * player has been shown, so neither can claim a lure or a page the water did
+   * not actually give them. Counted off catches alone: the flathead's page can
+   * be read from the first trip because page one is about flathead, and a mark
+   * that is on before anything has happened is a mark nobody reads.
+   */
+  const newSpecies = knownSpecies(log).size > speciesSeen
+  const newLures = unlockedLures(LURES, log).length > luresSeen
+  const journalWork = pageOutstanding || newSpecies
 
   // Clear a loss banner after it has been read. The animation and sound carry
   // the information; the words are only there to name what happened.
@@ -49,8 +68,14 @@ export function App({ world }: { world: World }) {
           <div className="corner-nav">
             <button
               data-interactive
-              className={pageOutstanding ? 'has-work' : undefined}
-              aria-label={pageOutstanding ? 'Journal, a page still missing' : 'Journal'}
+              className={mark(journalWork, newSpecies)}
+              aria-label={
+                newSpecies
+                  ? 'Journal, a new fish written up'
+                  : pageOutstanding
+                    ? 'Journal, a page still missing'
+                    : 'Journal'
+              }
               onClick={() => gameStore.getState().setScreen('journal')}
             >
               Journal
@@ -59,7 +84,8 @@ export function App({ world }: { world: World }) {
             <button
               data-interactive
               disabled={phase !== 'read'}
-              aria-label="Tackle box"
+              className={mark(newLures, newLures)}
+              aria-label={newLures ? 'Tackle box, something new in it' : 'Tackle box'}
               onClick={() => gameStore.getState().setScreen('tackle')}
             >
               Tackle
@@ -76,6 +102,17 @@ export function App({ world }: { world: World }) {
       )}
     </>
   )
+}
+
+/**
+ * A mark on a corner button: steady for outstanding, breathing for new.
+ *
+ * Reduced motion is handled in the stylesheet rather than here — the class is
+ * a statement about what is true, not about what should move.
+ */
+function mark(work: boolean, fresh: boolean): string | undefined {
+  if (!work) return undefined
+  return fresh ? 'has-work is-new' : 'has-work'
 }
 
 function Title() {

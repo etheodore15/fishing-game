@@ -4,7 +4,7 @@ import test from 'node:test'
 import { lureOutline } from '../src/art/lureRig.ts'
 import type { CadenceKind, Lure } from '../src/content/schema.ts'
 import type { CatchRecord, Settings } from '../src/engine/store.ts'
-import { tackleFor, unlockedLures } from '../src/sim/tackle.ts'
+import { firstCatch, tackleFor, unlockLine, unlockedLures } from '../src/sim/tackle.ts'
 import { runBite } from '../tools/bite-sim.ts'
 
 /**
@@ -127,5 +127,49 @@ test('the right lure for the retrieve is markedly faster', () => {
         `${best}: ${l.id} took ${at(l.id, best).toFixed(1)}s, ${other.id} took ${at(other.id, best).toFixed(1)}s`,
       )
     }
+  }
+})
+
+/**
+ * What a first catch is worth, and saying so.
+ *
+ * Landing a species you have never landed does two things — it opens that
+ * fish's page and, for two of the three, drops the lure it is caught on into
+ * the box. Both used to happen in silence, so a tailor read as a small
+ * flathead rather than as the way the game hands out everything it has.
+ */
+
+test('the first of a species is a first; the second is a fish', () => {
+  const one = caught('tailor')
+  assert.notEqual(firstCatch(LURES, [one], one), null)
+  const two = caught('tailor')
+  assert.equal(firstCatch(LURES, [one, two], two), null)
+})
+
+test('a first names the lure it just put in the box', () => {
+  const c = caught('tailor')
+  const f = firstCatch(LURES, [c], c)!
+  assert.equal(f.lure?.id, 'hard-body')
+  assert.match(unlockLine(f), /Hard-Body/)
+  assert.match(unlockLine(f), /journal/i)
+})
+
+test('a first with no lure behind it still says where the page went', () => {
+  const c = caught('dusky-flathead')
+  const f = firstCatch(LURES, [c], c)!
+  assert.equal(f.lure, null)
+  assert.match(unlockLine(f), /journal/i)
+  // And does not promise tackle that is not there.
+  assert.doesNotMatch(unlockLine(f), /box/i)
+})
+
+test('what the card says matches what the box actually does', () => {
+  // The line is written from the same rule the box is filled from, so a card
+  // cannot name a lure the player has not earned.
+  for (const id of ['tailor', 'australian-salmon']) {
+    const c = caught(id)
+    const f = firstCatch(LURES, [c], c)!
+    const box = unlockedLures(LURES, [c]).map((l) => l.id)
+    assert.ok(box.includes(f.lure!.id), `${id} named a lure that is not in the box`)
   }
 })

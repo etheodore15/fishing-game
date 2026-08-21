@@ -1,5 +1,5 @@
 import type { Lure } from '../content/schema.ts'
-import type { GameState } from '../engine/store.ts'
+import type { CatchRecord, GameState } from '../engine/store.ts'
 import { knownSpecies } from './knowledge.ts'
 
 /**
@@ -42,4 +42,47 @@ export function tackleFor(
 ): Lure {
   const box = unlockedLures(all, state.catchLog)
   return box.find((l) => l.id === state.settings.lureId) ?? box[0]!
+}
+
+/**
+ * What landing this fish has just opened up — or null, if it was not a first.
+ *
+ * Both consequences of a first catch used to happen in silence: a lure
+ * appeared in a box the player had no reason to open, and a page filled itself
+ * in at the back of a journal they were not looking at. A player who never
+ * opened either simply never learned that catching an unfamiliar fish is how
+ * this game gives you anything.
+ *
+ * Derived from the log rather than remembered at the moment it happens, for
+ * the same reason everything else here is: the log already knows whether this
+ * is the first of its kind, and a flag saying so is a second thing to keep
+ * true.
+ */
+export interface FirstCatch {
+  speciesId: string
+  displayName: string
+  /** The lure this fish has just put in the box, if it carries one. */
+  lure: Lure | null
+}
+
+export function firstCatch(
+  all: readonly Lure[],
+  log: readonly CatchRecord[],
+  c: CatchRecord,
+): FirstCatch | null {
+  let seen = 0
+  for (const r of log) if (r.speciesId === c.speciesId) seen += 1
+  if (seen !== 1) return null
+  return {
+    speciesId: c.speciesId,
+    displayName: c.displayName,
+    lure: all.find((l) => l.unlockedBy === c.speciesId) ?? null,
+  }
+}
+
+/** The one line the catch card says about it. Written here so it is testable. */
+export function unlockLine(f: FirstCatch): string {
+  return f.lure
+    ? `First one. Its page is in the journal, and a ${f.lure.displayName} is in the box.`
+    : 'First one. Its page is in the journal now.'
 }

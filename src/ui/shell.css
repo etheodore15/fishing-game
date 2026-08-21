@@ -377,6 +377,21 @@ html, body {
   margin: 0 0 1rem;
 }
 
+/*
+ * What a first catch has just opened.
+ *
+ * On the card, because the card is the one moment the player is certainly
+ * looking: a lure that appears in a closed box and a page that fills itself in
+ * at the back of a book they have not opened are both gifts nobody receives.
+ */
+.catch-unlock {
+  margin: 0.9rem 0 0;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  line-height: 1.35;
+  opacity: 0.78;
+}
+
 .catch-card dl {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -588,6 +603,26 @@ html, body {
   border-radius: 50%;
   background: var(--paper);
   opacity: 0.85;
+}
+
+/*
+ * The same mark, but new.
+ *
+ * A steady dot says there is something in here; a dot that breathes for a few
+ * seconds says something arrived just now. It stops on its own — an alert that
+ * never gives up is a badge, and a badge is wallpaper by the second trip.
+ */
+.corner-nav button.is-new::after {
+  animation: mark-arrive 1.8s ease-in-out 5;
+}
+
+@keyframes mark-arrive {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  45% { transform: scale(2.1); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .corner-nav button.is-new::after { animation: none; opacity: 1; }
 }
 
 .corner-nav button {

@@ -21,6 +21,9 @@ export interface SaveState {
   hasSeenRestoration: boolean
   /** Chapters whose completion card the player has already seen. */
   chaptersCelebrated?: string[]
+  /** How many species pages and lures the player has actually looked at. */
+  speciesSeen?: number
+  luresSeen?: number
   lastPlayed: number
 }
 
@@ -92,6 +95,8 @@ export function snapshot(): SaveState {
     settings: s.settings,
     hasSeenRestoration: s.hasSeenRestoration,
     chaptersCelebrated: s.chaptersCelebrated,
+    speciesSeen: s.speciesSeen,
+    luresSeen: s.luresSeen,
     lastPlayed: Date.now(),
   }
 }
@@ -110,6 +115,11 @@ export function applySave(s: SaveState): void {
     catchLog: s.catchLog ?? [],
     hasSeenRestoration: Boolean(s.hasSeenRestoration),
     chaptersCelebrated: s.chaptersCelebrated ?? [],
+    // Absent in a save from before the marks existed. Zero means everything
+    // already earned reads as unseen, which for a returning player is a
+    // one-off nudge to go and look at what they have — not a wrong answer.
+    speciesSeen: s.speciesSeen ?? 0,
+    luresSeen: s.luresSeen ?? 0,
     settings: { ...gameStore.getState().settings, ...s.settings },
   })
 }
@@ -121,7 +131,7 @@ export function applySave(s: SaveState): void {
 export function autosave(): () => void {
   let last = ''
   const unsubscribe = gameStore.subscribe((s) => {
-    const key = `${s.pagesRestored.join()}|${s.catchLog.length}|${s.hasSeenRestoration}|${s.chaptersCelebrated.join()}|${JSON.stringify(s.settings)}`
+    const key = `${s.pagesRestored.join()}|${s.catchLog.length}|${s.hasSeenRestoration}|${s.chaptersCelebrated.join()}|${s.speciesSeen},${s.luresSeen}|${JSON.stringify(s.settings)}`
     if (key === last) return
     last = key
     void save()

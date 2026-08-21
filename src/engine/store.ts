@@ -65,6 +65,18 @@ export interface GameState {
   hasSeenRestoration: boolean
   /** Chapters whose completion has been shown to the player. */
   chaptersCelebrated: string[]
+  /**
+   * How much of what the player has earned they have actually gone and looked
+   * at: species pages read, lures seen in the box.
+   *
+   * Two counts rather than two lists, and compared against the counts derived
+   * from the catch log. What is unlocked has exactly one source of truth — the
+   * log — and this says nothing about *which* things are unlocked, only how
+   * many had been seen last time the player opened the drawer. A list here
+   * would be a second answer to a question the log already answers.
+   */
+  speciesSeen: number
+  luresSeen: number
   settings: Settings
   ready: boolean
 
@@ -77,6 +89,7 @@ export interface GameState {
   restorePage(id: string): void
   finishRestoration(): void
   celebrate(chapterId: string): void
+  markSeen(what: 'species' | 'lures', n: number): void
   hydrate(s: Partial<GameState>): void
   setSettings(s: Partial<Settings>): void
 }
@@ -100,6 +113,8 @@ export const gameStore = createStore<GameState>()((set) => ({
   restoring: null,
   hasSeenRestoration: false,
   chaptersCelebrated: [],
+  speciesSeen: 0,
+  luresSeen: 0,
   settings: {
     audio: true,
     tierOverride: null,
@@ -140,6 +155,14 @@ export const gameStore = createStore<GameState>()((set) => ({
       s.chaptersCelebrated.includes(chapterId)
         ? s
         : { chaptersCelebrated: [...s.chaptersCelebrated, chapterId] },
+    ),
+  // Only ever forward: opening the book cannot un-see a page, and a stale
+  // count from a slow render must not put the mark back on the button.
+  markSeen: (what, n) =>
+    set((s) =>
+      what === 'species'
+        ? n > s.speciesSeen ? { speciesSeen: n } : s
+        : n > s.luresSeen ? { luresSeen: n } : s,
     ),
   hydrate: (s) => set(s),
   setSettings: (p) => set((s) => ({ settings: { ...s.settings, ...p } })),
