@@ -11,11 +11,12 @@ import { ParticleRenderer } from '../render/particles.ts'
 import { TackleRenderer } from '../render/tackle.ts'
 import type { SceneUniforms, Stage } from '../render/stage.ts'
 import { bathymetrySeed, type Chapter, type UnlockRule } from '../content/schema.ts'
-import { species as speciesById } from '../content/index.ts'
+import { journalPage, species as speciesById } from '../content/index.ts'
 import { clamp, rng } from '../art/noise.ts'
 import { Audio } from '../audio.ts'
 import { BaitSchool } from './boids.ts'
 import { hintFor, type Attention, type CoachInput } from './coach.ts'
+import { knownSpecies } from './knowledge.ts'
 import { Fish } from './fish.ts'
 import { KIND, ParticleField } from './particles.ts'
 import {
@@ -507,9 +508,15 @@ export class World {
     // The cadence of the fish that is actually interested, if one is — three
     // species on one flat want three different retrieves, and naming the
     // chapter's own fish while a tailor is following is bad advice.
+    //
+    // And only if the player has landed one. What a fish wants is knowledge
+    // the journal keeps and the catch log earns; before that the guide is a
+    // manual for the player's thumb and nothing more.
+    const known = knownSpecies(state.catchLog, this.platesOnRestoredPages(state.pagesRestored))
     const looking = this.attentionFish?.species ?? speciesById(this.chapter.species[0]!)
-    i.preferred = looking.cadence.preferred
-    i.attentionSpecies = this.attentionFish?.species.displayName ?? null
+    i.preferred = known.has(looking.id) ? looking.cadence.preferred : null
+    const seen = this.attentionFish?.species
+    i.attentionSpecies = seen && known.has(seen.id) ? seen.displayName : null
     i.tension = this.trip.fight.tension
     i.running = this.trip.fight.fish?.state === 'surge'
     state.setHint(hintFor(i))
@@ -518,12 +525,30 @@ export class World {
   /** Whichever fish is furthest along toward eating it, from the last scan. */
   private attentionFish: Fish | null = null
 
+  /** Reused, so the 4Hz publish allocates nothing it does not have to. */
+  private readonly plates: string[] = []
+
+  /**
+   * The species plates on the pages the player has back.
+   *
+   * A page about a fish is knowledge about that fish — page one ships restored
+   * and is about flathead — so the journal grants what it depicts.
+   */
+  private platesOnRestoredPages(restored: readonly string[]): string[] {
+    this.plates.length = 0
+    for (let i = 0; i < restored.length; i++) {
+      const src = journalPage(restored[i]!)
+      if (src.sketch !== 'none') this.plates.push(src.sketch)
+    }
+    return this.plates
+  }
+
   /** Reused across publishes, for the same reason the render loop reuses (§11). */
   private readonly coachInput: CoachInput = {
     phase: 'read',
     everCast: false,
     cadence: null,
-    preferred: 'hop',
+    preferred: null,
     holding: false,
     sinceGesture: 0,
     attention: 'none',

@@ -34,19 +34,24 @@ export interface CoachInput {
   everCast: boolean
   /** The retrieve the cadence reader is currently seeing. */
   cadence: CadenceKind | null
-  /** What the species actually wants. */
-  preferred: CadenceKind
+  /**
+   * What the fish in play wants — or null if the player has not caught one of
+   * those yet, and so has no business being told.
+   */
+  preferred: CadenceKind | null
   /** True while the player's thumb is down. */
   holding: boolean
   /** Seconds since the player last did anything during the retrieve. */
   sinceGesture: number
   attention: Attention
   /**
-   * The name of the fish that is paying attention, if one is.
+   * The name of the fish that is paying attention — if it is one the player
+   * has landed before and could therefore recognise.
    *
-   * Three species share the flat and they want different things. A player who
-   * can see a fish following can also see it is not the one the journal is
-   * about, and being told which is which is how the roster is learned.
+   * Three species share the flat and they want different things. Naming the
+   * one on your lure is how the roster is learned, and it is learned by
+   * catching them: a fish you have never had in the boat is a shape in the
+   * water, and the guide says so.
    */
   attentionSpecies: string | null
   /** 0-1 line load during a fight. The same number the rod's bend is drawn from. */
@@ -160,7 +165,7 @@ function workHint(i: CoachInput): Hint | null {
       key: 'following',
       text: i.attentionSpecies
         ? `A ${i.attentionSpecies.toLowerCase()} on it. Change nothing.`
-        : "It's following. Change nothing.",
+        : "Something's following. Change nothing.",
       gesture: null,
     }
   }
@@ -168,24 +173,34 @@ function workHint(i: CoachInput): Hint | null {
     return { key: 'noticed', text: "Something's had a look.", gesture: null }
   }
 
-  if (i.cadence === i.preferred) {
-    return {
-      key: 'right-cadence',
-      text: `That's the one. Keep it ${CADENCE_NAME[i.preferred]}.`,
-      gesture: GESTURE_FOR[i.preferred],
+  // What a fish wants is knowledge, and knowledge is earned by catching one.
+  // Until then the guide will say the lure is working and will not say what it
+  // ought to be doing instead, because the player has no way to know that yet
+  // and neither, honestly, would they.
+  if (i.preferred === null) {
+    if (i.cadence !== null) {
+      return { key: 'unknown-cadence', text: "Working. Something will tell you.", gesture: null }
     }
-  }
+  } else {
+    if (i.cadence === i.preferred) {
+      return {
+        key: 'right-cadence',
+        text: `That's the one. Keep it ${CADENCE_NAME[i.preferred]}.`,
+        gesture: GESTURE_FOR[i.preferred],
+      }
+    }
 
-  if (i.cadence === 'steady') {
-    // A held retrieve is one half of a hop. The other half is letting go.
-    return { key: 'to-hop', text: 'Now let go and tap — like this.', gesture: 'hop' }
-  }
+    if (i.cadence === 'steady' && i.preferred === 'hop') {
+      // A held retrieve is one half of a hop. The other half is letting go.
+      return { key: 'to-hop', text: 'Now let go and tap — like this.', gesture: 'hop' }
+    }
 
-  if (i.cadence !== null) {
-    return {
-      key: 'wrong-cadence',
-      text: `Working, but they want ${CADENCE_NAME[i.preferred]}.`,
-      gesture: GESTURE_FOR[i.preferred],
+    if (i.cadence !== null) {
+      return {
+        key: 'wrong-cadence',
+        text: `Working, but they want ${CADENCE_NAME[i.preferred]}.`,
+        gesture: GESTURE_FOR[i.preferred],
+      }
     }
   }
 

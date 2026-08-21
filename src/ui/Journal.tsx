@@ -1,7 +1,9 @@
 import { useCallback, useState } from 'react'
 import { gameStore, useGame } from '../engine/store.ts'
-import { chapter, species as speciesById } from '../content/index.ts'
+import { chapter, journalPage, species as speciesById } from '../content/index.ts'
+import { knownSpecies } from '../sim/knowledge.ts'
 import { recordLeaves } from '../art/recordPage.ts'
+import { speciesLeaves } from '../art/speciesPage.ts'
 import { describeUnlock, isChapterComplete, remainingUnlocks } from '../sim/progress.ts'
 import { JournalPage, type Restoration } from './JournalPage.tsx'
 
@@ -25,12 +27,24 @@ export function Journal({ chapterId }: { chapterId: string }) {
   const celebrated = useGame((s) => s.chaptersCelebrated)
   const catches = useGame((s) => s.catchLog)
   const [spread, setSpread] = useState(0)
-  const [view, setView] = useState<'pages' | 'record'>('pages')
+  const [view, setView] = useState<'pages' | 'species' | 'record'>('pages')
 
   const remaining = remainingUnlocks(ch, restored)
   const done = isChapterComplete(ch, restored) && !restoring
   // Shown once, on the trip that finishes the chapter.
   const showClose = done && !celebrated.includes(chapterId)
+
+  /**
+   * A species page nobody has filled in yet says how it gets filled in: by
+   * catching one. There is nothing else to it, and pretending otherwise would
+   * make it a quest.
+   */
+  const wantedSpecies = (leafId: string): string | null => {
+    if (view !== 'species') return null
+    const sp = ch.species.map((id) => speciesById(id)).find((s) => `species-${s.id}` === leafId)
+    if (!sp || known.has(sp.id)) return null
+    return `Land one and this fills itself in.`
+  }
 
   /**
    * What a missing page needs, written under it.
@@ -48,11 +62,19 @@ export function Journal({ chapterId }: { chapterId: string }) {
     return describeUnlock(rule, name)
   }
 
-  const leaves = recordLeaves(catches)
-  // A restoration always shows the page it is restoring, and never the record.
+  const known = knownSpecies(
+    catches,
+    pages.filter((id) => restored.includes(id)).map((id) => journalPage(id).sketch),
+  )
+  const leaves =
+    view === 'record'
+      ? recordLeaves(catches)
+      : speciesLeaves(ch.species.map((id) => speciesById(id)), catches, known)
+  // A restoration always shows the page it is restoring, and never the back of
+  // the book.
   const restoringIndex = restoring ? pages.indexOf(restoring) : -1
-  const showRecord = view === 'record' && restoringIndex < 0
-  const sheet = showRecord ? leaves.map((l) => l.id) : pages
+  const showBack = view !== 'pages' && restoringIndex < 0
+  const sheet = showBack ? leaves.map((l) => l.id) : pages
   const base = restoringIndex >= 0 ? Math.floor(restoringIndex / 2) * 2 : spread * 2
   const visible = sheet.slice(base, base + 2)
 
@@ -64,7 +86,7 @@ export function Journal({ chapterId }: { chapterId: string }) {
   }
 
   const spreads = Math.max(1, Math.ceil(sheet.length / 2))
-  const flip = (to: 'pages' | 'record') => {
+  const flip = (to: 'pages' | 'species' | 'record') => {
     setView(to)
     setSpread(0)
   }
@@ -76,17 +98,20 @@ export function Journal({ chapterId }: { chapterId: string }) {
           <div className="journal-leaf" key={id}>
             <JournalPage
               pageId={id}
-              mode={showRecord ? 'clean' : modeFor(id)}
-              source={showRecord ? leaves.find((l) => l.id === id) : undefined}
+              mode={showBack ? (leaves.find((l) => l.id === id)?.locked ? 'stained' : 'clean') : modeFor(id)}
+              source={showBack ? leaves.find((l) => l.id === id) : undefined}
               onRestored={finish}
             />
-            {!showRecord && wantedFor(id) && <p className="journal-wanted">{wantedFor(id)}</p>}
+            {!showBack && wantedFor(id) && <p className="journal-wanted">{wantedFor(id)}</p>}
+            {showBack && wantedSpecies(id) && (
+              <p className="journal-wanted">{wantedSpecies(id)}</p>
+            )}
           </div>
         ))}
       </div>
 
       <div className="journal-foot">
-        {!showRecord && (
+        {!showBack && (
           <div className="journal-dots" role="group" aria-label="Chapter one pages">
             {pages.map((id, i) => (
               <span
@@ -98,11 +123,13 @@ export function Journal({ chapterId }: { chapterId: string }) {
           </div>
         )}
         <span className="journal-chapter">
-          {showRecord
+          {view === 'record'
             ? `record · ${catches.length === 1 ? 'one fish' : `${catches.length} fish`}`
-            : done
-              ? 'chapter 1 · complete'
-              : `chapter 1 · ${remaining.length} to find`}
+            : view === 'species'
+              ? `species · ${known.size} of ${ch.species.length}`
+              : done
+                ? 'chapter 1 · complete'
+                : `chapter 1 · ${remaining.length} to find`}
         </span>
         {!restoring && (
           <div className="journal-tabs" role="group" aria-label="Journal sections">
@@ -112,6 +139,13 @@ export function Journal({ chapterId }: { chapterId: string }) {
               onClick={() => flip('pages')}
             >
               pages
+            </button>
+            <button
+              data-interactive
+              className={view === 'species' ? 'on' : ''}
+              onClick={() => flip('species')}
+            >
+              fish
             </button>
             <button
               data-interactive
