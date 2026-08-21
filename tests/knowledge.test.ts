@@ -55,7 +55,9 @@ test('a page about a fish is knowledge about that fish', () => {
 test('the notes say what it wants, where it lives and when it is on', () => {
   const notes = speciesNotes(TAILOR, []).join(' ')
   assert.match(notes, /twitched/i)
-  assert.match(notes, /roams/i)
+  // A tailor is a school of tailor, and it hunts by running things down.
+  assert.match(notes, /school/i)
+  assert.match(notes, /keep it moving/i)
   assert.match(notes, /run-in/i)
   assert.match(notes, /first and last light/i)
 })

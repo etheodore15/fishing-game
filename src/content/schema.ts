@@ -8,7 +8,30 @@ export interface Species {
   profileCurve: number[]
   /** 14 swim-wave amplitude multipliers, head to tail. */
   amplitudeProfile: number[]
-  swim: { cruiseHz: number; burstHz: number; turnRate: number; ambushBias: number }
+  swim: {
+    cruiseHz: number
+    burstHz: number
+    turnRate: number
+    /** 0 roams, 1 lies on the bottom and waits. Decides how it hunts. */
+    ambushBias: number
+    /**
+     * How much of a school it is: 0 is a fish on its own, 1 travels as a body.
+     *
+     * A flathead lies on the sand by itself; tailor and salmon move in schools
+     * and hunt as one. Separate from ambushBias because they are separate
+     * facts — a fish can roam alone, and a school can sit still.
+     */
+    schooling: number
+    /**
+     * How much it hunts by running things down.
+     *
+     * A chaser is switched on by a lure moving fast rather than frightened by
+     * it, closes on one hard, and takes a great deal more speed to spook.
+     * Separate from ambushBias for the same reason: an ambusher can still be a
+     * fish that explodes off the bottom at something quick.
+     */
+    chase: number
+  }
   palette: { dorsalIdx: number; ventralIdx: number; iridescence: number }
   markings: { type: 'ocelli' | 'stripes' | 'spots' | 'none'; count: number; seed: number }
   caudal: { fork: number; span: number }

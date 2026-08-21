@@ -113,6 +113,54 @@ export const WORK = {
    * third of the right one to about a fifth.
    */
   cadenceSharpness: 1.75,
+  /**
+   * Lure speed that fully switches on a fish that hunts by running things down.
+   *
+   * Tailor and salmon are chasers: they hit a moving target hard, and a lure
+   * ripped past them is the reason they eat it rather than a reason to leave
+   * it alone. Nothing in the water read the lure's speed except the spook
+   * test, so speed could only ever frighten a fish — exactly backwards for two
+   * of the three species on this flat. Scaled by the species' `chase`, so an
+   * ambusher lying on the sand is unmoved by it, which is also true.
+   */
+  chaseSpeedRef: 1.1,
+  /**
+   * What a dead-slow lure is worth to a full chaser.
+   *
+   * Under one, deliberately, and this is the whole shape of the term: a fish
+   * that hunts by running things down is not *extra* interested in something
+   * quick, it is uninterested in something that is barely moving. Written as a
+   * bonus instead — a straight multiplier on top of the cadence match — it
+   * inflated every bite a chaser took, and a soft plastic swum fast on a
+   * run-in beat the same plastic hopped, which is the plastic's whole reason
+   * for existing. Penalise the crawl, leave the sprint about where it was.
+   */
+  chaseFloor: 0.25,
+  /** How much a full-speed lure adds to a full chaser's interest. */
+  chaseGain: 0.25,
+  /** How much faster a lure has to be to spook a chaser rather than start it. */
+  chaseSpookTolerance: 2.6,
+  /** How far away a fish can see one of its own kind turn on something. */
+  schoolReach: 7,
+  /** Interest per second a rallying school-mate is worth, at full schooling. */
+  schoolPullPerSec: 0.55,
+  /**
+   * The most interest the school alone can give you.
+   *
+   * Well below `commitAt`, and that gap is the whole point. The school brings
+   * a fish over and gets it looking; the lure has to supply the rest itself,
+   * or the retrieve stops mattering the moment one fish switches on.
+   *
+   * At 0.8 against a commit at 0.86 it very nearly did: the school did all the
+   * work and a wrong lure worked fast beat the right lure worked properly —
+   * a plastic swum straight raised a salmon in 6.6s against 7.4s for the same
+   * plastic hopped, which is the plastic's whole reason for existing. At 0.6
+   * the school still gathers and still competes, and the last two fifths of
+   * the decision are still the player's.
+   */
+  schoolCeiling: 0.3,
+  /** Personal space inside a school, in body lengths. */
+  schoolSpacingBody: 2.4,
 } as const
 
 export const FIGHT = {

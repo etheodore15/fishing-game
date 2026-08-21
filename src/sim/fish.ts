@@ -2,6 +2,7 @@ import type { Species } from '../content/schema.ts'
 import { WORK } from '../engine/tuning.ts'
 import { clamp, lerp, rng } from '../art/noise.ts'
 import type { FishPose } from '../art/fishRig.ts'
+import type { Schools } from './school.ts'
 import type { Conditions, LureState } from './types.ts'
 import type { WaterField } from './water.ts'
 
@@ -82,9 +83,16 @@ export class Fish {
   private turnBias = 0
   private wanderPhase: number
   private rand: () => number
-  /** Where an ambush predator has decided to sit. */
-  private lieX = 0
-  private lieY = 0
+  /**
+   * Where this fish has decided to be.
+   *
+   * Public because a school shares one: the body of them go where the lead
+   * fish is going, and a school of four picking four destinations is four
+   * fish that happen to be the same species (measured: spread 1.85m against a
+   * solitary flathead's 2.12m — no school at all).
+   */
+  lieX = 0
+  lieY = 0
   private lieTimer = 0
   /**
    * A feeding lunge at the bait school.
@@ -96,6 +104,20 @@ export class Fish {
    */
   private lungeTimer = 0
   private lungeCooldown = 0
+
+  /** True while it is actually into the bait. Read by the school. */
+  get lunging(): boolean {
+    return this.lungeTimer > 0
+  }
+
+  /** Where it is feeding, for the rest of the school to join in on. */
+  get lungeAtX(): number {
+    return this.lungeX
+  }
+
+  get lungeAtY(): number {
+    return this.lungeY
+  }
 
   constructor(species: Species, seed: number, lengthCm: number) {
     this.species = species
@@ -127,6 +149,22 @@ export class Fish {
     return PROFILES[this.state]
   }
 
+  /**
+   * How hard it closes, once it has decided to.
+   *
+   * A chaser runs a lure down; an ambusher eases up on it and has a look. Only
+   * the approach states are scaled — a hooked fish's speed belongs to the
+   * fight, and a cruising one is not going anywhere in particular.
+   */
+  private get approachGain(): number {
+    if (this.state !== 'notice' && this.state !== 'inspect' && this.state !== 'commit') return 1
+    return this.chaseGain
+  }
+
+  private get chaseGain(): number {
+    return lerp(0.9, 1.75, this.species.swim.chase)
+  }
+
   get isHooked(): boolean {
     return (
       this.state === 'hooked' ||
@@ -148,14 +186,14 @@ export class Fish {
    * The fight states are driven by sim/hookup.ts instead — once a fish is on,
    * it is no longer deciding anything for itself.
    */
-  update(dt: number, water: WaterField, cond: Conditions, lure: LureState): void {
+  update(dt: number, water: WaterField, cond: Conditions, lure: LureState, schools: Schools): void {
     this.stateTime += dt
     this.finPhase += dt * (4 + this.profile.beat * 2)
 
     if (this.spookTimer > 0) this.spookTimer -= dt
     if (!this.isHooked && this.state !== 'landed') {
-      this.think(dt, cond, lure)
-      this.considerLunge(dt, cond)
+      this.think(dt, cond, lure, schools)
+      this.considerLunge(dt, cond, schools)
     }
 
     const p = this.profile
@@ -167,12 +205,12 @@ export class Fish {
     this.ampScale = lerp(this.ampScale, p.amp, 1 - Math.exp(-dt * 5))
 
     if (!this.isHooked && this.state !== 'landed') {
-      this.steer(dt, water, cond, lure)
+      this.steer(dt, water, cond, lure, schools)
     }
   }
 
   /** Interest, and the transitions it drives. Nothing here is scripted. */
-  private think(dt: number, cond: Conditions, lure: LureState): void {
+  private think(dt: number, cond: Conditions, lure: LureState, schools: Schools): void {
     if (this.state === 'spook') {
       this.interest = 0
       if (this.spookTimer <= 0) this.setState('cruise')
@@ -203,18 +241,52 @@ export class Fish {
         // Shaped, not linear: see WORK.cadenceSharpness. This is the whole
         // difference between three species and one species wearing three hats.
         const drive = Math.pow(match, WORK.cadenceSharpness)
-        this.interest += WORK.interestGainPerSec * drive * near * willing * dt
+        // And speed, for the ones that hunt by running things down. A tailor
+        // eats a lure *because* it is fleeing, and will not look twice at one
+        // crawling; a fish lying on the sand waiting for something to come
+        // past does not care either way. That is what `chase` says, and the
+        // term is a penalty on the crawl rather than a bonus on the sprint —
+        // a bonus made every chaser easier to catch at everything.
+        const fleeing = clamp(lure.speed / WORK.chaseSpeedRef, 0, 1)
+        const hunt = lerp(
+          1,
+          WORK.chaseFloor + (1 + WORK.chaseGain - WORK.chaseFloor) * fleeing,
+          this.species.swim.chase,
+        )
+        this.interest += WORK.interestGainPerSec * drive * hunt * near * willing * dt
       } else {
         this.interest -= WORK.interestDecayPerSec * dt
       }
       this.interest = clamp(this.interest, 0, 1)
 
       // Spooking: a lure ripped past an ambush predator's nose, or a retrieve
-      // hammering far faster than anything alive.
+      // hammering far faster than anything alive. A chaser will follow a lure
+      // going a great deal faster than that before it decides it is being
+      // hunted rather than doing the hunting.
       const closeUp = dist < this.lengthM * 2.5
-      if (closeUp && (lure.cadenceHz > WORK.spookCadenceHz || lure.speed > WORK.spookSpeed)) {
+      const tooFast = WORK.spookSpeed * lerp(1, WORK.chaseSpookTolerance, this.species.swim.chase)
+      if (closeUp && (lure.cadenceHz > WORK.spookCadenceHz || lure.speed > tooFast)) {
         this.spook()
         return
+      }
+    }
+
+    // What the rest of them are doing.
+    //
+    // A fish turning hard on something is the most visible event on a flat,
+    // and a schooling fish that sees one of its own do it comes to look. It
+    // cannot make it eat — the pull stops below the commit threshold — so the
+    // school brings the fish and the retrieve still has to catch it.
+    const schooling = this.species.swim.schooling
+    if (schooling > 0 && this.state !== 'commit') {
+      const row = schools.row(this.species.id)
+      if (row && row.rallyId >= 0 && row.rallyId !== this.id) {
+        const away = Math.hypot(row.rallyX - this.x, row.rallyY - this.y)
+        const seen = 1 - clamp(away / WORK.schoolReach, 0, 1)
+        if (seen > 0) {
+          const pull = WORK.schoolPullPerSec * schooling * row.rallyInterest * seen * dt
+          this.interest = Math.min(this.interest + pull, Math.max(this.interest, WORK.schoolCeiling))
+        }
       }
     }
 
@@ -251,7 +323,7 @@ export class Fish {
    * gets hammered on the run-out and ignored on the top of the tide — which is
    * the pattern §13 asks a player to be able to articulate after three trips.
    */
-  private considerLunge(dt: number, cond: Conditions): void {
+  private considerLunge(dt: number, cond: Conditions, schools: Schools): void {
     if (this.lungeTimer > 0) {
       this.lungeTimer -= dt
       if (this.lungeTimer <= 0) this.lungeCooldown = 3.5 + this.rand() * 6
@@ -263,18 +335,28 @@ export class Fish {
     }
     if (this.state !== 'cruise' || this.interest > WORK.noticeAt) return
 
-    const density = cond.baitAt(this.x)
+    // A school eats as a school. One of your own going through the bait is the
+    // reason you go through it too, and that is what a bust-up is: several
+    // fish at once, in one place, for a few seconds. One fish helping itself
+    // over and over is not a bust-up, it is lunch.
+    const school = this.species.swim.schooling
+    const row = school > 0 ? schools.row(this.species.id) : null
+    const joining = row && row.lungeN > 0 ? school : 0
+    const atX = joining > 0.4 ? row!.lungeX : this.x
+
+    const density = Math.max(cond.baitAt(this.x), joining > 0.4 ? cond.baitAt(atX) : 0)
     if (density < 0.35) return
     // A fish that hunts by running things down goes at a school harder than
     // one that lies on the sand waiting for the school to come to it. Same
     // rule, read off the same number that decides everything else about how
     // the species moves.
     const appetite = 0.85 + (1 - this.species.swim.ambushBias) * 0.9
-    const chance = density * cond.willingnessFor(this.species.id) * 0.55 * appetite * dt
+    const chance =
+      density * cond.willingnessFor(this.species.id) * 0.55 * appetite * (1 + joining * 5) * dt
     if (this.rand() > chance) return
 
-    this.lungeX = clamp(this.x + (this.rand() - 0.5) * 0.7, 0.5, 40)
-    this.lungeY = Math.max(cond.surfaceTop(this.x) + 0.06, cond.baitDepthAt(this.x))
+    this.lungeX = clamp(atX + (this.rand() - 0.5) * 0.7, 0.5, 40)
+    this.lungeY = Math.max(cond.surfaceTop(atX) + 0.06, cond.baitDepthAt(atX))
     this.lungeTimer = 0.55 + this.rand() * 0.5
   }
 
@@ -288,11 +370,15 @@ export class Fish {
   }
 
   /** Movement: a target point, a turn rate, and a speed. No paths. */
-  private steer(dt: number, water: WaterField, cond: Conditions, lure: LureState): void {
+  private steer(dt: number, water: WaterField, cond: Conditions, lure: LureState, schools: Schools): void {
     const p = this.profile
     let tx: number
     let ty: number
     const lunging = this.lungeTimer > 0
+    const school = this.species.swim.schooling
+    const row = school > 0 ? schools.row(this.species.id) : null
+    const rally =
+      row && row.rallyId >= 0 && row.rallyId !== this.id && this.state !== 'spook' ? row : null
 
     if (this.state === 'spook') {
       // Bolt for deep water, away from whatever frightened it.
@@ -309,6 +395,12 @@ export class Fish {
       // Lift off the bottom and face the lure without closing on it yet.
       tx = this.x + (lure.x - this.x) * 0.25
       ty = lerp(this.y, lure.y, 0.3)
+    } else if (rally) {
+      // Coming to see what one of your own has found. This is what the player
+      // watches when a school switches on: not one fish on the lure, but the
+      // rest of them arriving behind it.
+      tx = rally.rallyX
+      ty = rally.rallyY
     } else if (lunging) {
       // Straight at the thickest bait, and fast enough for the school to know.
       tx = this.lungeX
@@ -318,6 +410,14 @@ export class Fish {
       ty = this.lieY
       this.lieTimer -= dt
       if (this.lieTimer <= 0) this.chooseLie(water, cond, lure)
+
+      // Travel with your own kind: the school has one destination, and it is
+      // the lead fish's. A schooling fish keeps a little of its own lie so
+      // the body of them arrives as a body and not as a stack.
+      if (row && row.n > 1) {
+        tx = lerp(tx, row.lieX, school)
+        ty = lerp(ty, row.lieY, school)
+      }
     }
 
     // Never swim into the bed or out through the surface — but "the surface"
@@ -327,9 +427,48 @@ export class Fish {
     ty = clamp(ty, top, bed - this.lengthM * 0.12)
 
     let toward = Math.atan2(ty - this.y, tx - this.x)
+
+    /**
+     * Swim with the school.
+     *
+     * The target point is where this fish wants to go; this is the school
+     * having a say in how it gets there, which is what a school actually is.
+     * Two terms, and which one applies depends only on how far out it is: too
+     * far from the body of them and it turns back toward it, close enough and
+     * it falls in with the way they are all pointing.
+     *
+     * Applied to the heading rather than to the target, because a heading is
+     * what the turn rate acts on — blending targets and then turning slowly
+     * toward the result washes the school out to nothing, which is exactly
+     * what the first attempt at this did (spread 1.70m against a solitary
+     * flathead's 2.12m, alignment 0.61 against 0.55 — no school at all).
+     */
+    if (row && row.n > 1) {
+      const gap = this.lengthM * WORK.schoolSpacingBody
+      const mate = schools.nearestMate(this)
+      const mateD = mate ? Math.hypot(mate.x - this.x, mate.y - this.y) : Infinity
+      const cx = row.cx - this.x
+      const cy = row.cy - this.y
+      const out = Math.hypot(cx, cy)
+      // Separation, then cohesion, then alignment — in that order, because a
+      // school that is happy to overlap is not four fish, it is one smudge.
+      const withThem =
+        mate && mateD < gap
+          ? Math.atan2(this.y - mate.y, this.x - mate.x)
+          : out > gap * 1.6
+            ? Math.atan2(cy, cx)
+            : Math.atan2(row.hy, row.hx)
+      // A committed fish is eating. It can rejoin afterwards.
+      const w = school * (this.state === 'commit' ? 0.08 : mate && mateD < gap ? 0.8 : 0.45)
+      toward = Math.atan2(
+        Math.sin(toward) * (1 - w) + Math.sin(withThem) * w,
+        Math.cos(toward) * (1 - w) + Math.cos(withThem) * w,
+      )
+    }
+
     // A little wander so nothing tracks a straight line to its target.
     this.wanderPhase += dt * 0.7
-    toward += Math.sin(this.wanderPhase) * 0.25
+    toward += Math.sin(this.wanderPhase) * lerp(0.25, 0.1, school)
 
     let delta = toward - this.heading
     while (delta > Math.PI) delta -= Math.PI * 2
@@ -341,7 +480,14 @@ export class Fish {
     this.turnBias = lerp(this.turnBias, clamp(delta * 0.55, -1, 1), 1 - Math.exp(-dt * 7))
 
     const dist = Math.hypot(tx - this.x, ty - this.y)
-    const want = dist < 0.1 ? 0 : lunging ? this.species.swim.burstHz * 0.55 : p.speed
+    const want =
+      dist < 0.1
+        ? 0
+        : lunging
+          ? this.species.swim.burstHz * 0.55
+          : rally && this.state === 'cruise'
+            ? PROFILES.notice.speed * this.chaseGain
+            : p.speed * this.approachGain
     this.speed = lerp(this.speed, want, 1 - Math.exp(-dt * 4))
 
     this.x += Math.cos(this.heading) * this.speed * dt

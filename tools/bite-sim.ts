@@ -18,6 +18,7 @@ import { bathymetrySeed, type Chapter, type Lure, type Species } from '../src/co
 import { TIDE, TIME_COMPRESSION } from '../src/engine/tuning.ts'
 import { rng } from '../src/art/noise.ts'
 import { Fish } from '../src/sim/fish.ts'
+import { Schools } from '../src/sim/school.ts'
 import { Trip } from '../src/sim/trip.ts'
 import { WaterField } from '../src/sim/water.ts'
 import { DEFAULT_TIDE, emptyLightReading, emptyTideReading, readLight, readTide } from '../src/sim/tide.ts'
@@ -69,6 +70,21 @@ export interface BiteRun {
    */
   castReachM: number | null
   castHoldSec: number | null
+  /**
+   * How the roster holds together, and how it arrives.
+   *
+   * Two of these three fish school and hunt by running things down, which is a
+   * claim about how they move rather than about whether they bite: the mean
+   * gap to the nearest fish of your own kind, how many of your own kind were
+   * beside you when you ate, and how fast the lure was moving when you did.
+   */
+  mateGapM: Record<string, number>
+  /** RMS distance from the school's own centre, per species. */
+  spreadM: Record<string, number>
+  /** How aligned they swim: 0 is every fish its own way, 1 is one body. */
+  alignment: Record<string, number>
+  witnesses: number | null
+  lureSpeedAtCommit: number | null
   /** Seconds simulated. */
   elapsed: number
   /** Fraction of retrieve time with a fish inside perception range. */
@@ -178,16 +194,25 @@ export function runBite(opts: {
   }
 
   const rand = rng(opts.seed ?? 4409)
+  const schools = new Schools()
   const fish: Fish[] = []
   let seed = 7000
   for (const id of opts.onlySpecies ? [opts.onlySpecies] : ch.species) {
     const s = speciesById(id)
     const [minD, maxD] = s.habitat.depthM
+    // Same spawn as the game's (sim/world.ts): a school starts as a school,
+    // or every number here is about a flat the player never sees.
+    const spread = 4.2 + (0.7 - 4.2) * s.swim.schooling
+    const anchorX = 2.5 + rand() * 6
+    const anchorY = minD + rand() * (maxD - minD)
+    const heading = rand() < 0.5 ? 0 : Math.PI
     for (let i = 0; i < s.stock; i++) {
       const f = new Fish(s, (seed += 131), Fish.drawLength(s, rand))
-      f.x = 1.5 + rand() * 8
-      f.y = minD + rand() * (maxD - minD)
-      f.heading = rand() < 0.5 ? 0 : Math.PI
+      f.x = Math.min(9.5, Math.max(1.2, anchorX + (rand() - 0.5) * 2 * spread))
+      const own = minD + rand() * (maxD - minD)
+      const withThem = anchorY + (rand() - 0.5) * spread * 0.4
+      f.y = Math.min(maxD, Math.max(minD, own + (withThem - own) * s.swim.schooling))
+      f.heading = s.swim.schooling > 0.5 ? heading : rand() < 0.5 ? 0 : Math.PI
       fish.push(f)
     }
   }
@@ -197,13 +222,27 @@ export function runBite(opts: {
   let outcome: string | null = null
   const noop = () => {}
   let casts = 0
+  const mateGapSum = new Map<string, number>()
+  const mateGapN = new Map<string, number>()
+  const spreadSum = new Map<string, number>()
+  const alignSum = new Map<string, number>()
+  const groupN = new Map<string, number>()
+  let witnesses: number | null = null
+  let lureSpeedAtCommit: number | null = null
   let castReachM: number | null = null
   let castHoldSec: number | null = null
   const trip = new Trip(lure, water, cond, fish, {
     onPhase: (p) => {
       if (p !== 'fight') return
       committed = true
-      hooked = trip.fight.fish?.species.id ?? null
+      const on = trip.fight.fish
+      hooked = on?.species.id ?? null
+      lureSpeedAtCommit = lure.speed
+      if (on) {
+        witnesses = fish.filter(
+          (f) => f !== on && f.species.id === on.species.id && Math.hypot(f.x - on.x, f.y - on.y) < 2.5,
+        ).length
+      }
     },
     onCast: () => {
       casts += 1
@@ -289,7 +328,37 @@ export function runBite(opts: {
     }
 
     trip.step(DT, simTime, 12, 1)
-    for (const f of fish) f.update(DT, water, cond, lure)
+    schools.observe(fish)
+    for (const f of fish) f.update(DT, water, cond, lure, schools)
+
+    if (trip.phase === 'work') {
+      // The gap to your own kind, which is what schooling means when it is
+      // measured rather than asserted.
+      for (const f of fish) {
+        let nearest = Infinity
+        for (const g of fish) {
+          if (g === f || g.species.id !== f.species.id) continue
+          nearest = Math.min(nearest, Math.hypot(g.x - f.x, g.y - f.y))
+        }
+        if (!Number.isFinite(nearest)) continue
+        mateGapSum.set(f.species.id, (mateGapSum.get(f.species.id) ?? 0) + nearest)
+        mateGapN.set(f.species.id, (mateGapN.get(f.species.id) ?? 0) + 1)
+      }
+      for (const id of ch.species) {
+        const mine = fish.filter((f) => f.species.id === id && !f.isHooked)
+        if (mine.length < 2) continue
+        const cx = mine.reduce((a, f) => a + f.x, 0) / mine.length
+        const cy = mine.reduce((a, f) => a + f.y, 0) / mine.length
+        const rms = Math.sqrt(
+          mine.reduce((a, f) => a + (f.x - cx) ** 2 + (f.y - cy) ** 2, 0) / mine.length,
+        )
+        const hx = mine.reduce((a, f) => a + Math.cos(f.heading), 0) / mine.length
+        const hy = mine.reduce((a, f) => a + Math.sin(f.heading), 0) / mine.length
+        spreadSum.set(id, (spreadSum.get(id) ?? 0) + rms)
+        alignSum.set(id, (alignSum.get(id) ?? 0) + Math.hypot(hx, hy))
+        groupN.set(id, (groupN.get(id) ?? 0) + 1)
+      }
+    }
 
     if (trip.phase === 'work') {
       workTime += DT
@@ -327,7 +396,8 @@ export function runBite(opts: {
         water.width, simTime,
       )
       trip.step(DT, simTime, 12, 1)
-      for (const fh of fish) fh.update(DT, water, cond, lure)
+      schools.observe(fish)
+      for (const fh of fish) fh.update(DT, water, cond, lure, schools)
       peak = Math.max(peak, f.tension)
       if (opts.traceLine) {
         const span = Math.hypot(lure.x - trip.rod.tipX, lure.y - trip.rod.tipY)
@@ -364,6 +434,17 @@ export function runBite(opts: {
     casts,
     castReachM,
     castHoldSec,
+    mateGapM: Object.fromEntries(
+      [...mateGapSum].map(([id, sum]) => [id, sum / Math.max(1, mateGapN.get(id) ?? 1)]),
+    ),
+    spreadM: Object.fromEntries(
+      [...spreadSum].map(([id, v]) => [id, v / Math.max(1, groupN.get(id) ?? 1)]),
+    ),
+    alignment: Object.fromEntries(
+      [...alignSum].map(([id, v]) => [id, v / Math.max(1, groupN.get(id) ?? 1)]),
+    ),
+    witnesses,
+    lureSpeedAtCommit,
     elapsed: simTime,
     inRangeFraction: workTime > 0 ? inRange / workTime : 0,
     willingness: cond.willingness,

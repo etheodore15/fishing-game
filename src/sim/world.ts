@@ -13,12 +13,13 @@ import type { SceneUniforms, Stage } from '../render/stage.ts'
 import { bathymetrySeed, type Chapter, type UnlockRule } from '../content/schema.ts'
 import { LURES, journalPage, species as speciesById } from '../content/index.ts'
 import { tackleFor } from './tackle.ts'
-import { clamp, rng } from '../art/noise.ts'
+import { clamp, lerp, rng } from '../art/noise.ts'
 import { Audio } from '../audio.ts'
 import { BaitSchool } from './boids.ts'
 import { hintFor, type Attention, type CoachInput } from './coach.ts'
 import { knownSpecies } from './knowledge.ts'
 import { Fish } from './fish.ts'
+import { Schools } from './school.ts'
 import { KIND, ParticleField } from './particles.ts'
 import {
   DEFAULT_TIDE,
@@ -72,6 +73,8 @@ export class World {
   private readonly worldLayer = new Container()
   private readonly aboveWorldLayer = new Container()
   private readonly fishView = new FishRenderer()
+  /** Where each species' school is, rebuilt once a step (§8.1). */
+  private readonly schools = new Schools()
   private readonly baitView: BaitRenderer
   private readonly tackleView = new TackleRenderer()
 
@@ -180,13 +183,26 @@ export class World {
     for (const id of this.chapter.species) {
       const sp = speciesById(id)
       const [minD, maxD] = sp.habitat.depthM
+      // A school arrives as a school. Scattering them across the flat and
+      // letting the schooling terms gather them up works — it takes about
+      // thirty seconds — but the first half minute of every trip is exactly
+      // when the player is looking hardest at the water, and a school of
+      // tailor spread out like flathead is the wrong thing to show them.
+      const spread = lerp(4.2, 0.7, sp.swim.schooling)
+      const anchorX = 2.5 + rand() * 6
+      const anchorY = minD + rand() * (maxD - minD)
+      const heading = rand() < 0.5 ? 0 : Math.PI
       for (let i = 0; i < sp.stock; i++) {
         const f = new Fish(sp, (seed += 131), Fish.drawLength(sp, rand))
-        f.x = 1.5 + rand() * 8
+        f.x = clamp(anchorX + (rand() - 0.5) * 2 * spread, 1.2, 9.5)
         // Where the species lives, not where the flathead lives: the fish that
         // chase bait start up in the water column, which is where they belong.
-        f.y = minD + rand() * (maxD - minD)
-        f.heading = rand() < 0.5 ? 0 : Math.PI
+        f.y = clamp(
+          lerp(minD + rand() * (maxD - minD), anchorY + (rand() - 0.5) * spread * 0.4, sp.swim.schooling),
+          minD,
+          maxD,
+        )
+        f.heading = sp.swim.schooling > 0.5 ? heading : rand() < 0.5 ? 0 : Math.PI
         this.fish.push(f)
       }
     }
@@ -226,9 +242,18 @@ export class World {
     const width = Math.max(4, this.water.width)
     fresh.x = width * (0.55 + this.rand() * 0.32)
     const [minD, maxD] = sp.habitat.depthM
-    const bed = this.conditions.bedDepth(fresh.x)
-    fresh.y = clamp(minD + this.rand() * (maxD - minD), 0.15, Math.max(0.2, bed - 0.15))
+    let y = minD + this.rand() * (maxD - minD)
     fresh.heading = Math.PI
+    // A schooling fish rejoins its school rather than turning up on its own
+    // at the far end of the flat, because that is where the rest of them are.
+    const row = sp.swim.schooling > 0 ? this.schools.row(sp.id) : null
+    if (row && row.n > 0) {
+      fresh.x = lerp(fresh.x, row.cx + (this.rand() - 0.5) * 1.4, sp.swim.schooling)
+      y = lerp(y, row.cy + (this.rand() - 0.5) * 0.7, sp.swim.schooling)
+      fresh.heading = Math.atan2(row.hy, row.hx)
+    }
+    const bed = this.conditions.bedDepth(fresh.x)
+    fresh.y = clamp(y, 0.15, Math.max(0.2, bed - 0.15))
     this.fish[i] = fresh
   }
 
@@ -295,7 +320,10 @@ export class World {
     this.trip.tackle = tackleFor(LURES, gameStore.getState())
     this.trip.step(dt, t, this.wind.speedKt, this.water.windDir)
     this.bait.update(dt, this.water, this.conditions, this.fish)
-    for (const f of this.fish) f.update(dt, this.water, this.conditions, this.lure)
+    // Read the water once, before anything moves, so every fish in this step
+    // sees the same school rather than one that is a frame ahead of it.
+    this.schools.observe(this.fish)
+    for (const f of this.fish) f.update(dt, this.water, this.conditions, this.lure, this.schools)
 
     this.emitAmbient(dt, t)
     this.surfaceFx.update(dt, this.wind.x, this.wind.speedKt, this.surfaceAt)

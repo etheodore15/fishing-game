@@ -231,13 +231,23 @@ test('the wrong cadence still works, just slower', () => {
   // species share this water — but it takes longer to get there. Fished on a
   // run-in, so the fish that does want a steady is actually on; three wrongs
   // at once (wrong lure, wrong tide, wrong retrieve) is allowed to be nothing.
-  const hop = runBite({ hopIntervalSec: 1.2, script: 'hop', tideShiftSec: 240 })
-  const steady = runBite({ hopIntervalSec: 1.2, script: 'steady', tideShiftSec: 240 })
-  assert.notEqual(steady.timeToCommit, null, 'a steady retrieve never raised a fish')
-  assert.ok(
-    steady.timeToCommit! > hop.timeToCommit!,
-    `steady ${steady.timeToCommit}s should be slower than hop ${hop.timeToCommit}s`,
-  )
+  //
+  // Eight trips a side rather than one. A single seed was enough while the
+  // salmon were two fish swimming on their own; they school now, and a school
+  // that happens to pass the lure early makes one trip say the opposite of
+  // what the water does — measured over the roster, hop 8.2s against steady
+  // 12.0s, and on the seed this used to run, 9.8s against 7.5s.
+  const mean = (script: 'hop' | 'steady') => {
+    const runs = SEEDS.slice(0, 8).map((seed) =>
+      runBite({ hopIntervalSec: 1.2, script, tideShiftSec: 240, seed }),
+    )
+    const took = runs.filter((r) => r.timeToCommit !== null)
+    assert.ok(took.length >= 7, `a ${script} retrieve raised only ${took.length} of 8`)
+    return took.reduce((a, r) => a + r.timeToCommit!, 0) / took.length
+  }
+  const hop = mean('hop')
+  const steady = mean('steady')
+  assert.ok(steady > hop * 1.15, `steady ${steady.toFixed(1)}s against hop ${hop.toFixed(1)}s`)
 })
 
 test('a flick during the retrieve casts again instead of being swallowed', () => {

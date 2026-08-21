@@ -78,11 +78,20 @@ export function speciesNotes(sp: Species, log: readonly CatchRecord[]): string[]
   lines.push(`Wants it ${CADENCE_WORDS[sp.cadence.preferred]}.`)
 
   const [minD, maxD] = sp.habitat.depthM
+  // Whether it is one fish or a body of them, and where in the water it lives.
+  // Both come off the same file the water reads, so a page cannot describe a
+  // fish that behaves differently the moment you put a lure past it.
   lines.push(
     sp.swim.ambushBias > 0.5
       ? `Sits on the bottom and lets it come. ${minD}-${maxD}m.`
-      : `Roams, up off the bottom. ${minD}-${maxD}m.`,
+      : sp.swim.schooling > 0.5
+        ? `Travels in a school, up off the bottom. ${minD}-${maxD}m.`
+        : `Roams, up off the bottom. ${minD}-${maxD}m.`,
   )
+
+  // And how it hunts, which for two of the three is the whole trick: they run
+  // things down, and a lure crawling along is a lure they will not look at.
+  if (sp.swim.chase > 0.6) lines.push('Runs it down. Keep it moving.')
 
   const tides = sp.conditions.tideStates.map((t) => TIDE_WORDS[t])
   lines.push(`On ${joinWords(tides)}.`)
