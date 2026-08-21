@@ -446,6 +446,8 @@ export class World {
         holding: this.trip.isHolding,
         sinceGesture: this.trip.sinceGesture(this.lastSimTime),
         attention: this.attention(),
+        tension: this.trip.fight.tension,
+        running: this.trip.fight.fish?.state === 'surge',
       }),
     )
   }

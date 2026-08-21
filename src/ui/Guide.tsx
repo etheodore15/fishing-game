@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useGame } from '../engine/store.ts'
+import { GestureGlyph } from './GestureGlyph.tsx'
 
 /**
  * The guide's one line, above the utility strip.
@@ -31,8 +32,16 @@ export function Guide() {
       setVisible(true)
       return
     }
-    // Fade the old line out before the new one arrives, so two pieces of
-    // advice never cross-dissolve into an unreadable smudge.
+    // A live prompt cuts straight over: during a fight the advice changes every
+    // second or two, and fading out first would leave the line blank at exactly
+    // the moment the player is looking at it.
+    if (hint.live) {
+      setShown(hint)
+      setVisible(true)
+      return
+    }
+    // Otherwise fade the old line out before the new one arrives, so two pieces
+    // of advice never cross-dissolve into an unreadable smudge.
     setVisible(false)
     timer.current = window.setTimeout(() => {
       setShown(hint)
@@ -43,8 +52,9 @@ export function Guide() {
 
   if (!shown) return null
   return (
-    <p className={`guide${visible ? ' on' : ''}`} role="status" aria-live="polite">
-      {shown.text}
-    </p>
+    <div className={`guide${visible ? ' on' : ''}`} role="status" aria-live="polite">
+      {shown.gesture ? <GestureGlyph gesture={shown.gesture} /> : null}
+      <p>{shown.text}</p>
+    </div>
   )
 }

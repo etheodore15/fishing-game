@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert'
 import test from 'node:test'
-import { hintFor, type CoachInput } from '../src/sim/coach.ts'
-import { runBite } from '../tools/bite-sim.ts'
+import { hintFor, type CoachInput, type Gesture } from '../src/sim/coach.ts'
+import { runBite, type DragPolicy } from '../tools/bite-sim.ts'
 
 /**
  * The retrieve — the one thing a player cannot find on their own.
@@ -18,6 +18,8 @@ const base: CoachInput = {
   holding: false,
   sinceGesture: 0,
   attention: 'none',
+  tension: 0.5,
+  running: false,
 }
 
 test('the guide names the cast before anything has been cast', () => {
@@ -91,6 +93,86 @@ test('§6.1 — the guide never advises about the water', () => {
     }
   }
 })
+
+test('the fight asks for a thumb off the glass when the rod is loaded', () => {
+  const h = hintFor({ ...base, phase: 'fight', tension: 0.9 })
+  assert.equal(h?.key, 'ease-off')
+  assert.equal(h?.gesture, 'release')
+  // Too much pressure parts the line; it is slack that pulls a hook, and
+  // telling the player the wrong one teaches them the wrong reflex.
+  assert.match(h!.text, /line/i)
+})
+
+test('a running fish is given line, whatever the rod is doing', () => {
+  const h = hintFor({ ...base, phase: 'fight', tension: 0.5, running: true })
+  assert.equal(h?.key, 'running')
+  assert.equal(h?.gesture, 'release')
+})
+
+test('slack line asks for the thumb back down', () => {
+  const h = hintFor({ ...base, phase: 'fight', tension: 0.1 })
+  assert.equal(h?.key, 'tighten')
+  assert.equal(h?.gesture, 'press')
+})
+
+test('a fight with room in it asks the player to gain line', () => {
+  const h = hintFor({ ...base, phase: 'fight', tension: 0.5 })
+  assert.equal(h?.key, 'gain')
+  assert.equal(h?.gesture, 'press')
+})
+
+test('every hint that asks for something names a gesture to draw', () => {
+  // The glyph is how the rhythm is taught, so a hint that tells the player to
+  // do something without one is a hint that has lost half its meaning.
+  const silent = new Set(['noticed', 'following'])
+  const drawable: Gesture[] = ['flick', 'press', 'release', 'tap', 'hop']
+  const seen = new Set<string>()
+  for (const phase of ['read', 'cast', 'work', 'fight'] as const) {
+    for (const cadence of [null, 'hop', 'twitch', 'steady'] as const) {
+      for (const attention of ['none', 'notice', 'inspect'] as const) {
+        for (const tension of [0.1, 0.5, 0.9]) {
+          for (const sinceGesture of [0, 5]) {
+            const h = hintFor({ ...base, phase, cadence, attention, tension, sinceGesture })
+            if (!h || seen.has(h.key)) continue
+            seen.add(h.key)
+            if (silent.has(h.key)) assert.equal(h.gesture, null, `${h.key} should be silent`)
+            else assert.ok(h.gesture && drawable.includes(h.gesture), `${h.key} has no glyph`)
+          }
+        }
+      }
+    }
+  }
+  assert.ok(seen.size >= 9, `only reached ${seen.size} hints`)
+})
+
+test('a player watching the rod lands fish; a player mashing it does not', () => {
+  // §6.4 asks for losses that are the player's fault. The old numbers made
+  // every fight a line-break inside a second, whatever anyone did: a fifty-fish
+  // losing streak was the tuning, not the player.
+  const rate = (drag: DragPolicy) => {
+    const runs = SEEDS.map((seed) => runBite({ hopIntervalSec: 1.2, script: 'hop', drag, seed }).fight)
+    const fights = runs.filter((f) => f !== null)
+    assert.equal(fights.length, SEEDS.length, 'a fight failed to start')
+    return fights.filter((f) => f.outcome === 'landed').length / fights.length
+  }
+  const watching = rate('read-rod')
+  assert.ok(watching > 0.6, `a player watching the rod landed ${(watching * 100).toFixed(0)}%`)
+  assert.ok(watching < 1, 'a fight nobody can lose is not a fight')
+  assert.equal(rate('mash'), 0, 'mashing the screen blind should not land fish')
+  assert.equal(rate('always'), 0, 'a locked drag should part the line')
+  assert.equal(rate('never'), 0, 'no pressure at all should pull the hook')
+})
+
+test('a locked drag gives the player long enough to see the rod bend', () => {
+  // Under half a second of warning is not a decision, it is a coin toss.
+  const held = SEEDS.map((seed) => runBite({ hopIntervalSec: 1.2, script: 'hop', drag: 'always', seed }).fight!)
+  const mean = held.reduce((a, f) => a + f.seconds, 0) / held.length
+  assert.ok(mean > 1.5, `the line parted after ${mean.toFixed(2)}s`)
+  assert.ok(held.every((f) => f.outcome === 'line-break'))
+})
+
+/** Enough fights that a landing rate is a rate and not an anecdote. */
+const SEEDS = [4409, 15, 77, 903, 5150, 61, 2024, 8, 331, 1207, 99, 45, 7788, 512, 6, 1984]
 
 test('a hop retrieve gets a bite inside a couple of casts', () => {
   const r = runBite({ hopIntervalSec: 1.2, script: 'hop' })

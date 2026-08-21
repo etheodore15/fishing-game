@@ -103,20 +103,40 @@ export const WORK = {
 } as const
 
 export const FIGHT = {
-  /** Tension above this for breakSustainSec breaks the line. */
+  /**
+   * Tension above this for breakSustainSec breaks the line.
+   *
+   * The sustain is a second-and-a-bit rather than the four tenths it was,
+   * because four tenths is not a decision. Holding from the moment of hook-up
+   * put the rod in the red in under half a second and parted the line before
+   * the player had finished registering that a fish was on: every fight ended
+   * the same way, and none of them taught anything. §6.4 asks for a parted
+   * line to be a decision to hold too hard for too long, and too long has to
+   * be long enough to see. tools/bite-sim.ts measures the difference — a
+   * player watching the rod lands 13 of 16, a player mashing the screen blind
+   * lands none.
+   */
   breakTension: 0.95,
-  breakSustainSec: 0.4,
+  breakSustainSec: 1.1,
   /** Tension below this for slackSustainSec pulls the hook. */
   slackTension: 0.15,
-  slackSustainSec: 1.2,
+  slackSustainSec: 2.0,
   /** Distance (world units) at which a fish reaching structure busts off. */
   bustOffRadius: 0.42,
-  /** Tension added per second while the drag gesture is held. */
-  dragGainPerSec: 1.35,
+  /**
+   * Tension added per second while the drag gesture is held.
+   *
+   * Halved from where it started. The bargain of §6.4 is that leaning on a
+   * fish both slows it and loads the line, and the player chooses how much —
+   * but at the old rate there was no choosing: full drag went from a fresh
+   * hook-up to a parted line in nine tenths of a second, so the only winning
+   * move was never to hold, which pulls the hook instead.
+   */
+  dragGainPerSec: 0.70,
   /** Tension bled per second with no drag applied. */
   tensionBleedPerSec: 0.85,
   /** Extra tension per unit of fish surge velocity. */
-  surgeTensionScale: 0.30,
+  surgeTensionScale: 0.22,
   /** hookHold lost per second, scaled by tension above hookSafeTension. */
   hookWearPerSec: 0.055,
   hookSafeTension: 0.55,
