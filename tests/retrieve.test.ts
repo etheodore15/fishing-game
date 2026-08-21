@@ -174,6 +174,41 @@ test('a locked drag gives the player long enough to see the rod bend', () => {
 /** Enough fights that a landing rate is a rate and not an anecdote. */
 const SEEDS = [4409, 15, 77, 903, 5150, 61, 2024, 8, 331, 1207, 99, 45, 7788, 512, 6, 1984]
 
+test('the line never contradicts the rod', () => {
+  // §8.3 gives the Verlet solve the line's shape and §6.4 gives the fight the
+  // tension. They have to describe the same fish: a rod bent double over a
+  // bight of line lying on the bottom is two opposite stories at once, and it
+  // was what the endgame of every fight looked like — five metres of line
+  // strung across a two-metre gap, because nothing bounded the line's length
+  // against where the fish had actually got to.
+  const frames = SEEDS.slice(0, 8).flatMap(
+    (seed) => runBite({ hopIntervalSec: 1.2, script: 'hop', drag: 'read-rod', traceLine: true, seed }).fight?.line ?? [],
+  )
+  assert.ok(frames.length > 2000, `only ${frames.length} frames of fight`)
+
+  const loaded = frames.filter((f) => f.tension > 0.6)
+  const worst = Math.max(...loaded.map((f) => f.sagFrac))
+  assert.ok(worst < 0.1, `a rod at over 60% load hung ${(worst * 100).toFixed(0)}% sag in the line`)
+
+  // And the other way: slack has to look slack, or the player cannot see the
+  // hook about to drop out.
+  const slack = frames.filter((f) => f.tension < 0.3)
+  if (slack.length > 30) {
+    const mean = slack.reduce((a, f) => a + f.sagFrac, 0) / slack.length
+    assert.ok(mean > 0.04, `a slack line hung only ${(mean * 100).toFixed(1)}% sag`)
+  }
+
+  // Monotone: every step up in load has to take belly out, never put it in.
+  const bands = [0.2, 0.4, 0.6, 0.8].map((lo) => {
+    const inBand = frames.filter((f) => f.tension >= lo && f.tension < lo + 0.2)
+    return inBand.length ? inBand.reduce((a, f) => a + f.sagFrac, 0) / inBand.length : null
+  })
+  const measured = bands.filter((b) => b !== null)
+  for (let i = 1; i < measured.length; i++) {
+    assert.ok(measured[i]! <= measured[i - 1]!, `sag rose with load: ${measured.map((m) => m!.toFixed(3)).join(' → ')}`)
+  }
+})
+
 test('a hop retrieve gets a bite inside a couple of casts', () => {
   const r = runBite({ hopIntervalSec: 1.2, script: 'hop' })
   assert.notEqual(r.timeToCommit, null, 'no fish committed to a correctly worked lure')

@@ -297,16 +297,36 @@ export class Fight {
     this.hookHold = clamp(this.hookHold - FIGHT.hookWearPerSec * over * dt, 0, 1)
   }
 
-  /** Line gained and given. Retrieve is only possible while the fish yields. */
+  /**
+   * How much line is out — which is to say how much belly the player sees.
+   *
+   * This is a display quantity and nothing else: it sets the rest length the
+   * Verlet solve bellies against (§8.3) and no outcome depends on it. So it is
+   * derived from the thing the player is already reading, the rod's load, and
+   * cannot contradict it. Bar-tight under a bent rod; a proper bight when it
+   * goes slack; and the belly visibly coming out of it as the player leans on
+   * the fish.
+   *
+   * It used to be integrated instead — line added during a surge and taken
+   * back by the pump — with a floor at the straight gap and no ceiling. A
+   * hooked fish coming in closed that gap far faster than the reel took line
+   * back, so the endgame was routinely five metres of line strung across a two
+   * metre gap: the rod bent double over a bight lying on the bottom, two
+   * opposite stories at once. Measured across sixteen fights, forty-four per
+   * cent of all fight frames had a loaded rod over a bellied line.
+   */
   private workLine(dt: number, fish: Fish, rodTipX: number, rodTipY: number): void {
-    if (fish.state === 'surge' && this.drag < 0.9) {
-      this.lineOut += FIGHT.surgeGivePerSec * (1 - this.drag) * dt
-    } else if (this.drag > 0.4 && (fish.state === 'tire' || fish.stamina < 0.5)) {
-      this.lineOut -= FIGHT.gainPerSec * this.drag * dt
-    }
-    const actual = Math.hypot(fish.x - rodTipX, fish.y - rodTipY)
-    // The reel cannot hold more line out than there is water between you.
-    this.lineOut = clamp(this.lineOut, Math.max(0.3, actual * 0.92), 26)
+    const span = Math.hypot(fish.x - rodTipX, fish.y - rodTipY)
+    // How deep the belly should hang, then how much line it takes to hang it:
+    // arc length of a parabola of sag h over span L is L(1 + 8h²/3L²), so the
+    // excess is 8h²/3L. sim/line.ts inverts exactly this to place the curve.
+    const sag = lerp(FIGHT.slackSagFrac, FIGHT.tautSagFrac, clamp(this.tension, 0, 1)) * span
+    const target = span + (8 * sag * sag) / (3 * Math.max(span, 0.25))
+    const rate = target > this.lineOut ? FIGHT.slackGivePerSec : FIGHT.slackGatherPerSec
+    this.lineOut = lerp(this.lineOut, target, 1 - Math.exp(-dt * rate))
+    // The ease is feel; this is the guarantee. However fast the fish moves,
+    // the line on screen never says something the rod is not saying.
+    this.lineOut = clamp(this.lineOut, Math.max(0.3, span * 0.92), Math.min(target, 26))
   }
 
   private checkOutcome(fish: Fish, rodTipX: number, events: FightEvents): void {

@@ -484,6 +484,12 @@ export class Trip {
     const tension = this.phase === 'fight' ? this.fight.tension : 0
     this.rod.update(dt, tension, targetX, targetY, this.phase === 'fight')
 
+    // How briskly the line is eased onto the shape its own length implies.
+    // Under load a line settles almost at once; a lure being swum home is a
+    // lighter, slower version of the same thing; airborne it is doing whatever
+    // the cast is doing and nothing should tidy it.
+    const settle = this.phase === 'fight' ? 0.16 + this.fight.tension * 0.16 : this.phase === 'work' ? 0.1 : 0
+
     this.line.step(
       dt,
       this.rod.tipX,
@@ -494,6 +500,7 @@ export class Trip {
       surfaceAt,
       windKt,
       windDirX,
+      settle,
     )
   }
 

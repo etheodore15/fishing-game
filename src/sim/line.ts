@@ -94,6 +94,8 @@ export class FishingLine {
     surfaceAt: (x: number) => number,
     windKt: number,
     windDirX: number,
+    /** How briskly the line is eased onto the curve its own length implies. */
+    settle = 0,
   ): void {
     if (this.recoil > 0) this.recoil -= dt
 
@@ -156,6 +158,41 @@ export class FishingLine {
     if (pinTip) {
       this.x[SEGMENTS] = tipX
       this.y[SEGMENTS] = tipY
+    }
+
+    if (settle > 0 && pinTip && this.brokenAt < 0) this.hang(settle, anchorX, anchorY, tipX, tipY)
+  }
+
+  /**
+   * Hang the slack where the slack should hang.
+   *
+   * The constraint pass only ever shortens segments that have been stretched;
+   * a segment that has gone slack is left exactly where it is. So a line that
+   * bellied out and then had the slack taken up keeps its wander — every
+   * segment is short enough to satisfy its own constraint while the path as a
+   * whole still meanders — and extra iterations do not help, because there is
+   * nothing left to violate. Three metres of line strung across a one-metre
+   * gap ends up as a bight lying on the bottom while the rod is bent double.
+   *
+   * So the line is eased toward the curve its own length implies: the chord,
+   * plus the sag a uniformly loaded cable of exactly this much excess makes
+   * over exactly this span. Nothing here decides how much slack there is —
+   * lineOut does, and the fight decides that — this only decides where the
+   * slack goes. Eased rather than imposed, so wind, drag and gravity still
+   * move the line around on top of it.
+   */
+  private hang(k: number, ax: number, ay: number, bx: number, by: number): void {
+    const span = Math.hypot(bx - ax, by - ay)
+    const excess = Math.max(0, this.lineOut - span)
+    // Arc length of a parabola of sag h over span L is L(1 + 8h²/3L²); solved
+    // for h, that is the depth this much extra line has to hang in.
+    const sag = Math.sqrt((3 * excess * Math.max(span, 0.25)) / 8)
+    for (let i = 1; i < SEGMENTS; i++) {
+      const t = i / SEGMENTS
+      // A parabola: nothing at the ends, all of it at mid-span.
+      const bow = 4 * t * (1 - t)
+      this.x[i]! += (ax + (bx - ax) * t - this.x[i]!) * k
+      this.y[i]! += (ay + (by - ay) * t + sag * bow - this.y[i]!) * k
     }
   }
 

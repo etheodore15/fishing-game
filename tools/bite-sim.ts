@@ -66,6 +66,23 @@ export type PlayerScript = 'hop' | 'steady' | 'twitch' | 'idle' | 'flick-spam'
  */
 export type DragPolicy = 'always' | 'never' | 'mash' | 'read-rod' | 'perfect'
 
+/** One frame of fight geometry, for the line diagnostic. */
+export interface LineSample {
+  t: number
+  tension: number
+  /** 0 bellied right out, 1 bar tight. */
+  straightness: number
+  /** Rest length the Verlet solve is using, in metres. */
+  lineOut: number
+  /** Straight-line metres from rod tip to fish. */
+  span: number
+  /** How much longer the line is than the gap it has to cross. */
+  slack: number
+  /** How deep the belly hangs, as a fraction of the gap. What the eye reads. */
+  sagFrac: number
+  fishState: string
+}
+
 export interface FightRun {
   outcome: string | null
   /** Seconds the fight lasted. */
@@ -75,6 +92,8 @@ export interface FightRun {
   /** How close it got to being landed: 1 is landed. */
   peakTension: number
   lineOut: number
+  /** Per-frame geometry, only when the caller asked for it. */
+  line: LineSample[]
 }
 
 export function runBite(opts: {
@@ -82,6 +101,8 @@ export function runBite(opts: {
   script?: PlayerScript
   /** Play the fight out too, with this policy. */
   drag?: DragPolicy
+  /** Record the line's geometry every frame. Off by default; it allocates. */
+  traceLine?: boolean
   castPower?: number
   maxCasts?: number
   startHour?: number
@@ -234,6 +255,7 @@ export function runBite(opts: {
     const f = trip.fight
     let seconds = 0
     let peak = 0
+    const line: LineSample[] = []
     const brain: DragBrain = { held: false, nextLookAt: 0, rand: rng(opts.seed ?? 4409) }
     let clock = 0
     while (!outcome && seconds < 180) {
@@ -249,6 +271,21 @@ export function runBite(opts: {
       trip.step(DT, simTime, 12, 1)
       for (const fh of fish) fh.update(DT, water, cond, lure)
       peak = Math.max(peak, f.tension)
+      if (opts.traceLine) {
+        const span = Math.hypot(lure.x - trip.rod.tipX, lure.y - trip.rod.tipY)
+        line.push({
+          t: seconds,
+          tension: f.tension,
+          straightness: trip.line.straightness(),
+          lineOut: trip.line.lineOut,
+          span,
+          slack: trip.line.lineOut / Math.max(0.01, span),
+          sagFrac:
+            Math.sqrt(Math.max(0, (3 * (trip.line.lineOut - span) * Math.max(span, 0.25)) / 8)) /
+            Math.max(span, 0.25),
+          fishState: f.fish?.state ?? 'gone',
+        })
+      }
     }
     fightRun = {
       outcome,
@@ -256,6 +293,7 @@ export function runBite(opts: {
       stamina: fish0Stamina(f) ?? 0,
       peakTension: peak,
       lineOut: f.lineOut,
+      line,
     }
   }
 

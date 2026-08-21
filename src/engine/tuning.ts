@@ -157,10 +157,37 @@ export const FIGHT = {
    * which is what makes the fight a tug of war rather than a waiting game.
    */
   gainPerSec: 1.25,
-  /** Line given (world units/s) during a surge that outmuscles the drag. */
-  surgeGivePerSec: 1.6,
+  /**
+   * How fast the line takes up slack, and how fast it dumps it, as a rate
+   * constant on the ease toward the belly the rod is showing.
+   *
+   * Line goes out faster than it comes back: a run puts it in the water all at
+   * once and gathering it is work.
+   */
+  slackGivePerSec: 9,
+  slackGatherPerSec: 5,
   /** Distance to the rod at which the fish is landed. */
   landRadius: 0.9,
+  /**
+   * How deep the line hangs below the straight gap to the fish, as a fraction
+   * of that gap, on a completely slack line and on a fully loaded one.
+   *
+   * The line's rest length is what the Verlet solve bellies against, and
+   * nothing was bounding it against where the fish had got to. A hooked fish
+   * coming in — under the pump, or any moment the player let go — closed the
+   * gap far faster than the reel took line back, so the endgame was routinely
+   * five metres of line strung across a two-metre gap: the rod bent double and
+   * the line hanging in a bight on the bottom, telling the player two opposite
+   * stories at once. §8.3 gives the Verlet solve the line's shape and §6.4
+   * gives the fight the tension; these two numbers keep them describing the
+   * same fish.
+   *
+   * A fraction rather than a length because a given slackness looks the same
+   * whether the fish is two metres out or twelve, and it is how it looks that
+   * is being tuned.
+   */
+  slackSagFrac: 0.22,
+  tautSagFrac: 0.012,
 } as const
 
 export const TIDE = {
