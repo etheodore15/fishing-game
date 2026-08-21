@@ -28,12 +28,21 @@ const DT = 1 / 60
 // The content is imported as JSON modules by Vite, which Node will not do
 // without an import attribute the TypeScript here cannot carry. Read it.
 const json = <T,>(p: string): T => JSON.parse(readFileSync(new URL(p, import.meta.url), 'utf8')) as T
-const SPECIES = json<Species>('../src/content/species/dusky-flathead.json')
 const CHAPTER = json<Chapter>('../src/content/chapters/ch1-estuary.json')
+const SPECIES_BY_ID = new Map(
+  CHAPTER.species.map((id) => [id, json<Species>(`../src/content/species/${id}.json`)]),
+)
+const speciesById = (id: string): Species => {
+  const sp = SPECIES_BY_ID.get(id)
+  if (!sp) throw new Error(`unknown species: ${id}`)
+  return sp
+}
 
 export interface BiteRun {
   /** The fight, if one was played out. */
   fight: FightRun | null
+  /** Which species committed, if one did. */
+  species: string | null
   /** Seconds of retrieve before a fish committed, or null if none did. */
   timeToCommit: number | null
   /** Highest interest any fish reached. */
@@ -107,9 +116,12 @@ export function runBite(opts: {
   maxCasts?: number
   startHour?: number
   seed?: number
+  /** Put only this species on the water, to see what it alone will do. */
+  onlySpecies?: string
+  /** Start the tide this far into its cycle, to fish a different state. */
+  tideShiftSec?: number
 } ): BiteRun {
   const ch = CHAPTER
-  const sp = SPECIES
   const water = new WaterField(bathymetrySeed(ch.bathymetry))
   const worldWidth = 13.3 // a phone in landscape
   water.setWorldWidth(worldWidth)
@@ -124,8 +136,10 @@ export function runBite(opts: {
   }
 
   let simTime = 0
+  const willing = new Map<string, number>()
   const cond: Conditions = {
     willingness: 1,
+    willingnessFor: (id) => willing.get(id) ?? 1,
     flow: 0,
     lightLevel: 1,
     depthAt: (x) => water.depthAt(x),
@@ -145,20 +159,30 @@ export function runBite(opts: {
 
   const rand = rng(opts.seed ?? 4409)
   const fish: Fish[] = []
-  for (let i = 0; i < 4; i++) {
-    const f = new Fish(sp, 7000 + i * 131, Fish.drawLength(sp, rand))
-    f.x = 1.5 + rand() * 8
-    f.y = 1.4 + rand() * 1.4
-    f.heading = rand() < 0.5 ? 0 : Math.PI
-    fish.push(f)
+  let seed = 7000
+  for (const id of opts.onlySpecies ? [opts.onlySpecies] : ch.species) {
+    const s = speciesById(id)
+    const [minD, maxD] = s.habitat.depthM
+    for (let i = 0; i < s.stock; i++) {
+      const f = new Fish(s, (seed += 131), Fish.drawLength(s, rand))
+      f.x = 1.5 + rand() * 8
+      f.y = minD + rand() * (maxD - minD)
+      f.heading = rand() < 0.5 ? 0 : Math.PI
+      fish.push(f)
+    }
   }
 
   let committed = false
+  let hooked: string | null = null
   let outcome: string | null = null
   const noop = () => {}
   let casts = 0
   const trip = new Trip(lure, water, cond, fish, {
-    onPhase: (p) => { if (p === 'fight') committed = true },
+    onPhase: (p) => {
+      if (p !== 'fight') return
+      committed = true
+      hooked = trip.fight.fish?.species.id ?? null
+    },
     onCast: () => { casts += 1 }, onSplash: noop, onSnag: noop,
     onHeadshake: noop, onSurge: noop, onOutcome: (o) => { outcome = o },
   })
@@ -193,13 +217,19 @@ export function runBite(opts: {
 
     // One frame.
     simTime += DT
-    readTide(simTime, tideConfig, tide)
+    readTide(simTime + (opts.tideShiftSec ?? 0), tideConfig, tide)
     readLight(startHour + (simTime * TIME_COMPRESSION) / 3600, 0.5, light)
     water.flow = tide.flow
     water.tideOffsetM = tide.heightM - TIDE.meanM
     cond.flow = tide.flow
     cond.lightLevel = light.level
-    cond.willingness = willingnessFor(sp, tide.state, light.level)
+    let keenest = 0
+    for (const id of ch.species) {
+      const w = willingnessFor(speciesById(id), tide.state, light.level)
+      willing.set(id, w)
+      keenest = Math.max(keenest, w)
+    }
+    cond.willingness = keenest
 
     if (trip.phase === 'work') {
       switch (script) {
@@ -262,7 +292,7 @@ export function runBite(opts: {
       const held = decideDrag(opts.drag, f, brain, (clock += DT))
       simTime += DT
       seconds += DT
-      readTide(simTime, tideConfig, tide)
+      readTide(simTime + (opts.tideShiftSec ?? 0), tideConfig, tide)
       cond.flow = tide.flow
       trip.onGesture(
         held ? { type: 'holdstart', x: 0, y: 0, nx: 0.5, ny: 0.5 } : { type: 'holdend', x: 0, y: 0, durationMs: 0 },
@@ -299,6 +329,7 @@ export function runBite(opts: {
 
   return {
     fight: fightRun,
+    species: hooked,
     timeToCommit: committed ? workTime : null,
     peakInterest: peak,
     closestM: closest,
@@ -388,7 +419,66 @@ const POLICY_LABEL: Record<DragPolicy, string> = {
   perfect: 'perfect (reads the tension)',
 }
 
+/** Which retrieve raises which fish, which is the whole point of a roster. */
+function rosterTable(): void {
+  const scripts: PlayerScript[] = ['hop', 'twitch', 'steady']
+  // Two states, because when a species is on is half of what makes it itself.
+  for (const [label, tideShiftSec] of [['the run-out the chapter opens on', 0], ['a run-in', 240]] as const) {
+    console.log(`who takes it, by retrieve — ${label}:`)
+    for (const script of scripts) {
+      const tally: Record<string, number> = {}
+      for (const seed of SEEDS) {
+        const r = runBite({ hopIntervalSec: 1.2, script, seed, maxCasts: 12, tideShiftSec })
+        const key = r.species ?? 'nothing'
+        tally[key] = (tally[key] ?? 0) + 1
+      }
+      const line = Object.entries(tally)
+        .sort((a, b) => b[1] - a[1])
+        .map(([k, v]) => `${k} ${v}`)
+        .join(', ')
+      console.log(`  ${script.padEnd(8)} ${line}`)
+    }
+    console.log('')
+  }
+  console.log('and how each of them fights, played by someone watching the rod:')
+  for (const id of CHAPTER.species) {
+    const sp = speciesById(id)
+    const script = sp.cadence.preferred as PlayerScript
+    const fights = SEEDS.map(
+      (seed) =>
+        runBite({
+          hopIntervalSec: 1.2,
+          script,
+          drag: 'read-rod',
+          seed,
+          onlySpecies: id,
+          tideShiftSec: 240,
+        }).fight,
+    ).filter((f) => f !== null)
+    const tally: Record<string, number> = {}
+    for (const f of fights) tally[f.outcome ?? 'never ended'] = (tally[f.outcome ?? 'never ended'] ?? 0) + 1
+    const mean = fights.reduce((a, f) => a + f.seconds, 0) / Math.max(1, fights.length)
+    const line = Object.entries(tally).map(([k, v]) => `${k} ${v}`).join(', ')
+    console.log(`  ${id.padEnd(18)} ${line.padEnd(38)} mean ${mean.toFixed(1)}s`)
+  }
+  console.log('')
+  console.log('and alone, so a species cannot hide behind the others:')
+  for (const id of CHAPTER.species) {
+    const row = scripts.map((script) => {
+      const hits = SEEDS.filter(
+        (seed) => runBite({ hopIntervalSec: 1.2, script, seed, maxCasts: 12, onlySpecies: id }).species,
+      ).length
+      return `${script} ${hits}/${SEEDS.length}`
+    })
+    console.log(`  ${id.padEnd(18)} ${row.join('   ')}`)
+  }
+}
+
 if (process.argv[1]?.endsWith('bite-sim.ts')) {
+  if (process.argv[2] === 'roster') {
+    rosterTable()
+    process.exit(0)
+  }
   const scripts: PlayerScript[] = ['hop', 'steady', 'twitch', 'idle', 'flick-spam']
   for (const script of scripts) {
     const hop = 1.2

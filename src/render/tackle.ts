@@ -9,6 +9,7 @@ import {
   lureX,
   lureY,
   solveLure,
+  type LurePose,
 } from '../art/lureRig.ts'
 import { SEGMENTS } from '../sim/line.ts'
 import { ROD_SAMPLES } from '../sim/rod.ts'
@@ -84,6 +85,14 @@ export class TackleRenderer {
 
   /** Smoothed, so the plastic swings round rather than snapping to a new angle. */
   private lureAngle = Math.PI / 2
+  /**
+   * Reused. §11 asks the render loop to allocate nothing, and a fresh pose
+   * literal sixty times a second is exactly the kind of thing that does not
+   * show up until a phone starts dropping frames to collect it.
+   */
+  private readonly lurePose: LurePose = {
+    x: 0, y: 0, heading: 0, lengthM: LURE_LENGTH_M, t: 0, drive: 0,
+  }
 
   /**
    * @param tension 0-1. The line pales toward palette[5] as it loads (§8.3).
@@ -128,14 +137,13 @@ export class TackleRenderer {
     // is information — it is the difference between fishing and waiting.
     this.lureAngle = lureHeading(lure.vx, lure.vy, this.lureAngle, dt)
     const drive = lureVisible ? Math.min(1, lure.speed * 0.85 + lure.kick * 0.75) : 0
-    solveLure({
-      x: lure.x,
-      y: lure.y,
-      heading: this.lureAngle,
-      lengthM: LURE_LENGTH_M,
-      t,
-      drive,
-    })
+    const pose = this.lurePose
+    pose.x = lure.x
+    pose.y = lure.y
+    pose.heading = this.lureAngle
+    pose.t = t
+    pose.drive = drive
+    solveLure(pose)
     // The whole profile is scaled together rather than each station being
     // floored on its own: a minimum width applied per-station turns a tapered
     // body into a sausage, and the taper is the only reason it reads as a lure.

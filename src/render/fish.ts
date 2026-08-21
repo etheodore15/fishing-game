@@ -44,6 +44,7 @@ class FishMesh {
   }
 
   constructor(species: Species) {
+    this.wearing = species.id
     this.vertices = new Float32Array(VERTEX_COUNT * FLOATS_PER_VERTEX)
     this.buffer = new Buffer({ data: this.vertices, usage: BufferUsage.VERTEX | BufferUsage.COPY_DST })
     const stride = FLOATS_PER_VERTEX * 4
@@ -80,7 +81,23 @@ class FishMesh {
     this.mesh.eventMode = 'none'
   }
 
+  /** What this mesh is currently dressed as. */
+  private wearing = ''
+
   write(species: Species, pose: FishPose): void {
+    // A pooled mesh was built for whichever fish first needed it, and its
+    // colours and markings were baked into its uniforms at that moment. With
+    // one species that never mattered; with three, a retired flathead's mesh
+    // handed to a tailor would draw a tailor in flathead's clothes.
+    if (species.id !== this.wearing) {
+      this.wearing = species.id
+      this.uniforms.uDorsalIdx = species.palette.dorsalIdx
+      this.uniforms.uVentralIdx = species.palette.ventralIdx
+      this.uniforms.uIridescence = species.palette.iridescence
+      this.uniforms.uMarkType = MARK_TYPE[species.markings.type] ?? 0
+      this.uniforms.uMarkCount = Math.min(16, species.markings.count)
+      this.uniforms.uMarkSeed = species.markings.seed
+    }
     poseFish(species, pose, this.vertices, 0)
     this.buffer.update()
   }

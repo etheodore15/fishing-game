@@ -1,0 +1,16 @@
+{
+  "id": "australian-salmon",
+  "displayName": "Australian Salmon",
+  "profileCurve": [0.045, 0.21, 0.31, 0.37, 0.39, 0.38, 0.35, 0.3, 0.24, 0.18, 0.13, 0.09, 0.06, 0.04],
+  "amplitudeProfile": [0, 0.01, 0.02, 0.03, 0.05, 0.07, 0.11, 0.17, 0.26, 0.39, 0.55, 0.73, 0.9, 1],
+  "swim": { "cruiseHz": 1.3, "burstHz": 6.2, "turnRate": 2.2, "ambushBias": 0.05 },
+  "palette": { "dorsalIdx": 0, "ventralIdx": 5, "iridescence": 0.35 },
+  "markings": { "type": "spots", "count": 12, "seed": 613 },
+  "caudal": { "fork": 0.6, "span": 1.05 },
+  "cadence": { "preferred": "steady", "tolerance": 0.38 },
+  "fight": { "stamina": 0.95, "surgePower": 0.95, "headshakeFreq": 0.6, "structureSeek": 0.05 },
+  "size": { "minCm": 26, "maxCm": 62, "curve": "lognormal" },
+  "stock": 2,
+  "habitat": { "depthM": [0.2, 1.5], "substrate": ["open"] },
+  "conditions": { "tideStates": ["run-in", "high-slack"], "lightPref": [0.05, 0.65] }
+}

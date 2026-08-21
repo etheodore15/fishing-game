@@ -88,15 +88,28 @@ const heap = async () => {
 // Measured per SECOND, not per frame: software rendering runs at a handful of
 // frames a second, so a per-frame figure here says more about SwiftShader than
 // about the game.
-const SECONDS = 12
-const before = await heap()
-await page.waitForTimeout(SECONDS * 1000)
-const after = await heap()
-
-const perSecond = (after - before) / SECONDS
+//
+// Three windows and the median of them, because one window is not a
+// measurement. A forced collection is best-effort, and back-to-back runs of an
+// identical build have come back at -13, +9 and +39 KB/s — a single sample
+// decides at random which of those it reports, and a guard that fires at
+// random is worse than no guard.
+const SECONDS = 10
+const WINDOWS = 3
+const samples = []
+for (let w = 0; w < WINDOWS; w++) {
+  const before = await heap()
+  await page.waitForTimeout(SECONDS * 1000)
+  const after = await heap()
+  samples.push({ before, after, perSecond: (after - before) / SECONDS })
+}
+samples.sort((a, b) => a.perSecond - b.perSecond)
+const median = samples[Math.floor(WINDOWS / 2)]
+const { before, after, perSecond } = median
 console.log(
   `heap         ${(before / 1024).toFixed(0)}KB → ${(after / 1024).toFixed(0)}KB` +
-    `   (${(perSecond / 1024).toFixed(1)} KB/s retained)`,
+    `   (${(perSecond / 1024).toFixed(1)} KB/s retained, median of ${WINDOWS})` +
+    `   [${samples.map((x) => (x.perSecond / 1024).toFixed(1)).join(', ')}]`,
 )
 if (perSecond > 24 * 1024) {
   console.log('FAIL: the game is retaining memory while it renders')

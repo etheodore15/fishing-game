@@ -28,8 +28,17 @@ export interface LureState {
 
 /** Live conditions, read by every sub-simulation. */
 export interface Conditions {
-  /** 0-1, how well the water suits this species right now. */
+  /**
+   * 0-1, how switched on the predators are as a whole — the highest any
+   * species on the water is feeling right now.
+   *
+   * The bait school reads this, because bait does not care which thing is
+   * about to eat it. A fish reads `willingnessFor` instead: the whole point of
+   * more than one species is that the same water suits them differently.
+   */
   willingness: number
+  /** 0-1, how well the water suits this species right now. */
+  willingnessFor(speciesId: string): number
   /** -1 full ebb to +1 full flood. */
   flow: number
   /** 0-1. */

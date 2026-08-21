@@ -198,8 +198,12 @@ export class Fish {
       // Willingness folds in the tide and the light: the same retrieve simply
       // works less well on the wrong tide, which is the whole lesson of §13.
       const near = 1 - clamp(dist / WORK.perceptionRadius, 0, 1)
+      const willing = cond.willingnessFor(this.species.id)
       if (match > 0.12) {
-        this.interest += WORK.interestGainPerSec * match * near * cond.willingness * dt
+        // Shaped, not linear: see WORK.cadenceSharpness. This is the whole
+        // difference between three species and one species wearing three hats.
+        const drive = Math.pow(match, WORK.cadenceSharpness)
+        this.interest += WORK.interestGainPerSec * drive * near * willing * dt
       } else {
         this.interest -= WORK.interestDecayPerSec * dt
       }
@@ -261,7 +265,12 @@ export class Fish {
 
     const density = cond.baitAt(this.x)
     if (density < 0.35) return
-    const chance = density * cond.willingness * 0.55 * dt
+    // A fish that hunts by running things down goes at a school harder than
+    // one that lies on the sand waiting for the school to come to it. Same
+    // rule, read off the same number that decides everything else about how
+    // the species moves.
+    const appetite = 0.85 + (1 - this.species.swim.ambushBias) * 0.9
+    const chance = density * cond.willingnessFor(this.species.id) * 0.55 * appetite * dt
     if (this.rand() > chance) return
 
     this.lungeX = clamp(this.x + (this.rand() - 0.5) * 0.7, 0.5, 40)
@@ -358,6 +367,7 @@ export class Fish {
     this.lieTimer = lerp(4, 26, bias) * (0.6 + this.rand() * 0.9)
 
     const [minD, maxD] = this.species.habitat.depthM
+    const willing = cond.willingnessFor(this.species.id)
     let bestX = this.x
     let bestScore = -Infinity
     // Sample a handful of candidate lies and take the best. Cheaper and more
@@ -374,8 +384,8 @@ export class Fish {
       const score =
         depthFit * 1.5 +
         structureFit * 1.1 +
-        baitFit * 1.3 * cond.willingness +
-        lureFit * 0.6 * cond.willingness +
+        baitFit * 1.3 * willing +
+        lureFit * 0.6 * willing +
         this.rand() * 0.35
       if (score > bestScore) {
         bestScore = score
@@ -383,8 +393,15 @@ export class Fish {
       }
     }
     this.lieX = bestX
-    // An ambush fish lies hard on the bottom; a cruiser sits up off it.
-    this.lieY = cond.bedDepth(bestX) - lerp(0.55, 0.05, bias) - this.lengthM * 0.08
+    // An ambush fish lies hard on the bottom; a cruiser holds at whatever
+    // depth the species actually lives at, which for the fish that chase bait
+    // is up in the water where the bait is. Reading the habitat band rather
+    // than measuring off the bed is the difference between a tailor working
+    // mid-water and a tailor pretending to be a flathead.
+    const bed = cond.bedDepth(bestX)
+    const onBottom = bed - lerp(0.55, 0.05, bias) - this.lengthM * 0.08
+    const inBand = clamp(lerp(minD, maxD, this.rand()), 0.12, Math.max(0.15, bed - 0.15))
+    this.lieY = lerp(inBand, onBottom, bias)
   }
 
   /** Fill a rig pose from the current state. Allocation-free. */

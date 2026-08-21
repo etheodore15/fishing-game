@@ -17,7 +17,8 @@
     "offline": "node tools/offline.mjs",
     "sw": "node tools/sw-update.mjs",
     "play": "node tools/play.mjs",
-    "bite": "node --experimental-strip-types tools/bite-sim.ts"
+    "bite": "node --experimental-strip-types tools/bite-sim.ts",
+    "roster": "node --experimental-strip-types tools/bite-sim.ts roster"
   },
   "dependencies": {
     "howler": "^2.2.4",

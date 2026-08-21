@@ -1,6 +1,8 @@
 import type { Chapter, Species } from './schema.ts'
 import { parsePage, type PageSource } from '../art/journalPage.ts'
 import flathead from './species/dusky-flathead.json'
+import tailor from './species/tailor.json'
+import salmon from './species/australian-salmon.json'
 import ch1 from './chapters/ch1-estuary.json'
 import p001 from './journal/p001.md?raw'
 import p002 from './journal/p002.md?raw'
@@ -11,10 +13,16 @@ import p003 from './journal/p003.md?raw'
  * three seconds (§13 acceptance) and a round trip to the cache for four small
  * JSON files is three round trips too many.
  *
- * The slice ships one species (§13.3). Chapter 2+ species are out of scope.
+ * The flathead is what the chapter is about. The other two are what turns up
+ * beside it: same flat, same bait, different fish. They are content and
+ * nothing else — three JSON files and a line in the chapter — because §10.1
+ * puts every species through one schema and there is no per-species code
+ * anywhere for a new one to need.
  */
 export const SPECIES: Record<string, Species> = {
   [flathead.id]: flathead as Species,
+  [tailor.id]: tailor as Species,
+  [salmon.id]: salmon as Species,
 }
 
 export const CHAPTERS: Record<string, Chapter> = {

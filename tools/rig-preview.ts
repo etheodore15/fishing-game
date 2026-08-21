@@ -6,7 +6,7 @@
  * a readable size so silhouette, fin placement and mirror orientation can be
  * checked without hunting for a fish in the scene.
  *
- * Usage: node --experimental-strip-types tools/rig-preview.ts > rig.svg
+ * Usage: node --experimental-strip-types tools/rig-preview.ts [species-id]
  */
 import { readFileSync, writeFileSync } from 'node:fs'
 import {
@@ -21,8 +21,9 @@ import type { Species } from '../src/content/schema.ts'
 // Read the species file directly rather than through src/content/index.ts:
 // that module imports JSON the way the bundler does, which Node will not do
 // without import attributes, and a dev tool is not worth contorting the app for.
+const speciesId = process.argv[2] ?? 'dusky-flathead'
 const sp = JSON.parse(
-  readFileSync(new URL('../src/content/species/dusky-flathead.json', import.meta.url), 'utf8'),
+  readFileSync(new URL(`../src/content/species/${speciesId}.json`, import.meta.url), 'utf8'),
 ) as Species
 const indices = buildIndices()
 const verts = new Float32Array(VERTEX_COUNT * FLOATS_PER_VERTEX)
@@ -70,6 +71,6 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="760" height="${poses
 ${rows.join('\n')}
 </svg>`
 
-const out = process.argv[2] ?? 'scratch/rig.svg'
+const out = process.argv[3] ?? `scratch/rig-${speciesId}.svg`
 writeFileSync(out, svg)
 console.log(`wrote ${out}`)

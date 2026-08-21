@@ -7,9 +7,10 @@
   "palette": { "dorsalIdx": 1, "ventralIdx": 4, "iridescence": 0.15 },
   "markings": { "type": "ocelli", "count": 9, "seed": 41 },
   "caudal": { "fork": 0.05, "span": 0.9 },
-  "cadence": { "preferred": "hop", "tolerance": 0.35 },
+  "cadence": { "preferred": "hop", "tolerance": 0.38 },
   "fight": { "stamina": 0.55, "surgePower": 0.7, "headshakeFreq": 1.8, "structureSeek": 0.3 },
   "size": { "minCm": 32, "maxCm": 78, "curve": "lognormal" },
+  "stock": 5,
   "habitat": { "depthM": [0.5, 3.5], "substrate": ["sand", "weed-edge"] },
   "conditions": { "tideStates": ["run-out", "low-slack"], "lightPref": [0.2, 0.7] }
 }

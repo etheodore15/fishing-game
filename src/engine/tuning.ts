@@ -100,6 +100,19 @@ export const WORK = {
   spookSpeed: 6.0,
   /** Seconds of window over which retrieve cadence is measured. */
   cadenceWindowSec: 2.4,
+  /**
+   * How sharply a species' preferred retrieve beats the others.
+   *
+   * The cadence match runs 0-1 and used to feed the interest gain straight;
+   * with one species on the water that was fine, because there was nothing to
+   * discriminate against. With three it meant every fish ate everything —
+   * measured over sixteen trips a piece, a tailor took a steady retrieve as
+   * readily as a salmon did, and a flathead took a twitch nearly as often as a
+   * tailor. Raising the match to a power widens the gap without changing what
+   * a correct retrieve is worth: a perfect wrong cadence goes from about a
+   * third of the right one to about a fifth.
+   */
+  cadenceSharpness: 1.75,
 } as const
 
 export const FIGHT = {

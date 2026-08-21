@@ -15,7 +15,7 @@ import { species as speciesById } from '../content/index.ts'
 import { clamp, rng } from '../art/noise.ts'
 import { Audio } from '../audio.ts'
 import { BaitSchool } from './boids.ts'
-import { hintFor, type Attention } from './coach.ts'
+import { hintFor, type Attention, type CoachInput } from './coach.ts'
 import { Fish } from './fish.ts'
 import { KIND, ParticleField } from './particles.ts'
 import {
@@ -99,6 +99,7 @@ export class World {
 
   constructor(chapter: Chapter, stage: Stage, quality: Quality) {
     this.chapter = chapter
+    this.roster = chapter.species
     this.stage = stage
     this.quality = quality
     this.water = new WaterField(bathymetrySeed(chapter.bathymetry))
@@ -129,6 +130,7 @@ export class World {
 
     this.conditions = {
       willingness: 1,
+      willingnessFor: (id) => this.willing.get(id) ?? 1,
       flow: 0,
       lightLevel: 1,
       depthAt: (x) => this.water.depthAt(x),
@@ -171,17 +173,26 @@ export class World {
    */
   private spawnFish(): void {
     const rand = rng(4409)
+    let seed = 7000
     for (const id of this.chapter.species) {
       const sp = speciesById(id)
-      for (let i = 0; i < 4; i++) {
-        const f = new Fish(sp, 7000 + i * 131, Fish.drawLength(sp, rand))
+      const [minD, maxD] = sp.habitat.depthM
+      for (let i = 0; i < sp.stock; i++) {
+        const f = new Fish(sp, (seed += 131), Fish.drawLength(sp, rand))
         f.x = 1.5 + rand() * 8
-        f.y = 1.4 + rand() * 1.4
+        // Where the species lives, not where the flathead lives: the fish that
+        // chase bait start up in the water column, which is where they belong.
+        f.y = minD + rand() * (maxD - minD)
         f.heading = rand() < 0.5 ? 0 : Math.PI
         this.fish.push(f)
       }
     }
   }
+
+  /** Live willingness per species, rewritten each step. */
+  private readonly willing = new Map<string, number>()
+  /** The chapter's species list, held so the per-step loop can be indexed. */
+  private readonly roster: readonly string[] = []
 
   private nextFishSeed = 9000
 
@@ -211,7 +222,9 @@ export class World {
     // of lie-hopping to work its way back into casting range.
     const width = Math.max(4, this.water.width)
     fresh.x = width * (0.55 + this.rand() * 0.32)
-    fresh.y = Math.max(0.4, this.conditions.bedDepth(fresh.x) - 0.4 - this.rand() * 0.6)
+    const [minD, maxD] = sp.habitat.depthM
+    const bed = this.conditions.bedDepth(fresh.x)
+    fresh.y = clamp(minD + this.rand() * (maxD - minD), 0.15, Math.max(0.2, bed - 0.15))
     fresh.heading = Math.PI
     this.fish[i] = fresh
   }
@@ -261,7 +274,19 @@ export class World {
 
     this.conditions.flow = this.tide.flow
     this.conditions.lightLevel = this.light.level
-    this.conditions.willingness = this.willingnessFor(this.chapter.species[0]!)
+    // One reading per species, and the bait's own scalar is whichever of them
+    // is most likely to eat something. Three species on one flat is three
+    // different waters, and that difference is the whole reason for them.
+    let keenest = 0
+    // Indexed, not for-of: this runs every fixed step and an array iterator is
+    // an allocation (§11).
+    for (let i = 0; i < this.roster.length; i++) {
+      const id = this.roster[i]!
+      const w = this.willingnessFor(id)
+      this.willing.set(id, w)
+      keenest = Math.max(keenest, w)
+    }
+    this.conditions.willingness = keenest
 
     this.trip.step(dt, t, this.wind.speedKt, this.water.windDir)
     this.bait.update(dt, this.water, this.conditions, this.fish)
@@ -472,28 +497,57 @@ export class World {
       return
     }
 
-    state.setHint(
-      hintFor({
-        phase: this.trip.phase,
-        everCast: this.trip.everCast,
-        cadence: this.lure.cadence,
-        preferred: speciesById(this.chapter.species[0]!).cadence.preferred,
-        holding: this.trip.isHolding,
-        sinceGesture: this.trip.sinceGesture(this.lastSimTime),
-        attention: this.attention(),
-        tension: this.trip.fight.tension,
-        running: this.trip.fight.fish?.state === 'surge',
-      }),
-    )
+    const i = this.coachInput
+    i.phase = this.trip.phase
+    i.everCast = this.trip.everCast
+    i.cadence = this.lure.cadence
+    i.holding = this.trip.isHolding
+    i.sinceGesture = this.trip.sinceGesture(this.lastSimTime)
+    i.attention = this.attention()
+    // The cadence of the fish that is actually interested, if one is — three
+    // species on one flat want three different retrieves, and naming the
+    // chapter's own fish while a tailor is following is bad advice.
+    const looking = this.attentionFish?.species ?? speciesById(this.chapter.species[0]!)
+    i.preferred = looking.cadence.preferred
+    i.attentionSpecies = this.attentionFish?.species.displayName ?? null
+    i.tension = this.trip.fight.tension
+    i.running = this.trip.fight.fish?.state === 'surge'
+    state.setHint(hintFor(i))
+  }
+
+  /** Whichever fish is furthest along toward eating it, from the last scan. */
+  private attentionFish: Fish | null = null
+
+  /** Reused across publishes, for the same reason the render loop reuses (§11). */
+  private readonly coachInput: CoachInput = {
+    phase: 'read',
+    everCast: false,
+    cadence: null,
+    preferred: 'hop',
+    holding: false,
+    sinceGesture: 0,
+    attention: 'none',
+    attentionSpecies: null,
+    tension: 0,
+    running: false,
   }
 
   /** The most interested any fish is in the lure right now. */
   private attention(): Attention {
     let best: Attention = 'none'
+    this.attentionFish = null
     for (const f of this.fish) {
-      if (f.state === 'commit') return 'commit'
-      if (f.state === 'inspect') best = 'inspect'
-      else if (f.state === 'notice' && best === 'none') best = 'notice'
+      if (f.state === 'commit') {
+        this.attentionFish = f
+        return 'commit'
+      }
+      if (f.state === 'inspect') {
+        best = 'inspect'
+        this.attentionFish = f
+      } else if (f.state === 'notice' && best === 'none') {
+        best = 'notice'
+        this.attentionFish = f
+      }
     }
     return best
   }

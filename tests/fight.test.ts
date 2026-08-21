@@ -20,6 +20,7 @@ function harness() {
   water.setWorldWidth(12.4)
   const cond: Conditions = {
     willingness: 1,
+    willingnessFor: () => 1,
     flow: 0,
     lightLevel: 0.5,
     depthAt: (x) => water.depthAt(x),

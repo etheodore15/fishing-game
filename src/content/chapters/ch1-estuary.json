@@ -4,7 +4,7 @@
   "water": "estuary",
   "bathymetry": "seeded-procedural:1187",
   "structures": ["weed-edge", "sand-drop", "oyster-racks"],
-  "species": ["dusky-flathead"],
+  "species": ["dusky-flathead", "tailor", "australian-salmon"],
   "tideCycleMinutes": 360,
   "pages": ["p001", "p002", "p003"],
   "startHour": 6.8,

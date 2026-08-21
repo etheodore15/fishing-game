@@ -15,6 +15,14 @@ export interface Species {
   cadence: { preferred: CadenceKind; tolerance: number }
   fight: { stamina: number; surgePower: number; headshakeFreq: number; structureSeek: number }
   size: { minCm: number; maxCm: number; curve: 'lognormal' | 'uniform' }
+  /**
+   * How many of this species are on the water at once.
+   *
+   * Content, not code: the target species should outnumber what turns up
+   * beside it, and which is which is a fact about the chapter, not about the
+   * simulation.
+   */
+  stock: number
   habitat: { depthM: [number, number]; substrate: string[] }
   conditions: { tideStates: TideState[]; lightPref: [number, number] }
 }

@@ -41,6 +41,14 @@ export interface CoachInput {
   /** Seconds since the player last did anything during the retrieve. */
   sinceGesture: number
   attention: Attention
+  /**
+   * The name of the fish that is paying attention, if one is.
+   *
+   * Three species share the flat and they want different things. A player who
+   * can see a fish following can also see it is not the one the journal is
+   * about, and being told which is which is how the roster is learned.
+   */
+  attentionSpecies: string | null
   /** 0-1 line load during a fight. The same number the rod's bend is drawn from. */
   tension: number
   /** True while a hooked fish is visibly running. */
@@ -148,7 +156,13 @@ function workHint(i: CoachInput): Hint | null {
   // It has decided. Anything said now is said over the top of the take.
   if (i.attention === 'commit') return null
   if (i.attention === 'inspect') {
-    return { key: 'following', text: "It's following. Change nothing.", gesture: null }
+    return {
+      key: 'following',
+      text: i.attentionSpecies
+        ? `A ${i.attentionSpecies.toLowerCase()} on it. Change nothing.`
+        : "It's following. Change nothing.",
+      gesture: null,
+    }
   }
   if (i.attention === 'notice') {
     return { key: 'noticed', text: "Something's had a look.", gesture: null }

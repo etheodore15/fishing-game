@@ -18,6 +18,7 @@ const base: CoachInput = {
   holding: false,
   sinceGesture: 0,
   attention: 'none',
+  attentionSpecies: null,
   tension: 0.5,
   running: false,
 }
@@ -63,6 +64,13 @@ test('a following fish outranks any advice about cadence', () => {
   // Otherwise the guide invites the player to change what is working.
   const h = hintFor({ ...base, cadence: 'twitch', attention: 'inspect' })
   assert.equal(h?.key, 'following')
+})
+
+test('a following fish is named, because three species want three things', () => {
+  const h = hintFor({ ...base, attention: 'inspect', attentionSpecies: 'Tailor' })
+  assert.match(h!.text, /a tailor on it/i)
+  // And still says the one thing worth saying: leave it alone.
+  assert.match(h!.text, /change nothing/i)
 })
 
 test('the guide shuts up while a fish is committing', () => {
@@ -217,7 +225,9 @@ test('a hop retrieve gets a bite inside a couple of casts', () => {
 })
 
 test('the wrong cadence still works, just slower', () => {
-  // The species wants a hop; a steady retrieve is meant to be worse, not futile.
+  // The flat's own fish is the flathead and it wants a hop. A steady retrieve
+  // still raises something — three species share this water — but it takes
+  // longer to get there. Which of them takes it is tests/species.test.ts.
   const hop = runBite({ hopIntervalSec: 1.2, script: 'hop' })
   const steady = runBite({ hopIntervalSec: 1.2, script: 'steady' })
   assert.notEqual(steady.timeToCommit, null, 'a steady retrieve never raised a fish')
