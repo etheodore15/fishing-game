@@ -61,6 +61,8 @@ export interface GameState {
   restoring: string | null
   /** The first restoration may not be skipped. */
   hasSeenRestoration: boolean
+  /** Chapters whose completion has been shown to the player. */
+  chaptersCelebrated: string[]
   settings: Settings
   ready: boolean
 
@@ -72,6 +74,7 @@ export interface GameState {
   logCatch(c: CatchRecord): void
   restorePage(id: string): void
   finishRestoration(): void
+  celebrate(chapterId: string): void
   hydrate(s: Partial<GameState>): void
   setSettings(s: Partial<Settings>): void
 }
@@ -94,6 +97,7 @@ export const gameStore = createStore<GameState>()((set) => ({
   pagesRestored: ['p001'], // the tutorial page ships restored (§13.8)
   restoring: null,
   hasSeenRestoration: false,
+  chaptersCelebrated: [],
   settings: { audio: true, tierOverride: null, reducedMotion: false, guide: 'auto' },
   ready: false,
 
@@ -123,6 +127,12 @@ export const gameStore = createStore<GameState>()((set) => ({
         : { pagesRestored: [...s.pagesRestored, id], restoring: id, screen: 'journal' },
     ),
   finishRestoration: () => set({ restoring: null, hasSeenRestoration: true }),
+  celebrate: (chapterId) =>
+    set((s) =>
+      s.chaptersCelebrated.includes(chapterId)
+        ? s
+        : { chaptersCelebrated: [...s.chaptersCelebrated, chapterId] },
+    ),
   hydrate: (s) => set(s),
   setSettings: (p) => set((s) => ({ settings: { ...s.settings, ...p } })),
 }))

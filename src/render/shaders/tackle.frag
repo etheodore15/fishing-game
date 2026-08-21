@@ -2,12 +2,17 @@
 precision highp float;
 
 /**
- * Rod and line.
+ * Rod, line and lure.
  *
  * aShade carries tension for the line (§8.3: the colour shifts toward
- * palette[5] as tension rises) and a flat value for the rod blank. Output is
- * sRGB-encoded: this layer draws over the finished water, not into the
- * refraction target.
+ * palette[5] as tension rises), a flat value for the rod blank, and the lure's
+ * own lightness — dark lead head, pale plastic, paddle flashing as it turns
+ * over. One ramp serves all three, which is also why the lure reads at ten
+ * pixels: it is the same pale-against-dark the bait school is drawn with, and
+ * the eye already knows to look for it.
+ *
+ * Output is sRGB-encoded: this layer draws over the finished water, not into
+ * the refraction target.
  */
 
 in float vShade;

@@ -146,6 +146,7 @@ export class Trip {
           // A hop lifts the lure and draws it home; it does not fire it left.
           // The direction has to come from where the rod is, or a retrieve
           // walks the lure off the far side of the screen.
+          this.lure.kick = 1
           this.lureVY -= 0.9
           this.lureVX += Math.sign(this.rod.tipX - this.lure.x) * 0.85
         }
@@ -167,6 +168,7 @@ export class Trip {
 
   private mark(kind: CadenceKind, t: number, impulse: number): void {
     this.marks.push({ t, kind })
+    if (kind !== 'steady') this.lure.kick = 1
     if (impulse > 0) {
       // A twitch is a short sharp pull back toward the rod.
       this.lureVX += Math.sign(this.rod.tipX - this.lure.x) * impulse
@@ -195,6 +197,7 @@ export class Trip {
     this.lure.cadence = null
     this.lure.cadenceQuality = 0
     this.lure.cadenceHz = 0
+    this.lure.kick = 0
     this.marks.length = 0
     this.lastHopAt = -Infinity
     this.sinceLanded = 0
@@ -209,6 +212,9 @@ export class Trip {
 
   step(dt: number, t: number, windKt: number, windDirX: number): void {
     const surfaceAt = this.surfaceAt
+    // A kick is a transient: the tail snaps over and then settles back into
+    // whatever the retrieve is doing.
+    this.lure.kick = Math.max(0, this.lure.kick - dt * 2.6)
 
     switch (this.phase) {
       case 'cast':
@@ -435,6 +441,9 @@ export class Trip {
     this.lure.y = fish.y
     this.lure.inWater = true
     this.lure.speed = fish.speed
+    // In the fish's jaw now, so it goes where the fish goes.
+    this.lure.vx = Math.cos(fish.heading) * fish.speed
+    this.lure.vy = Math.sin(fish.heading) * fish.speed
     this.line.lineOut = this.fight.lineOut
   }
 
@@ -511,5 +520,16 @@ export class Trip {
 
   get lineVisible(): boolean {
     return this.phase !== 'read' || this.line.isBroken
+  }
+
+  /**
+   * Whether there is still a lure on the end of it.
+   *
+   * A parted line and a snag both take the plastic with them, and drawing one
+   * on the end of a line that no longer has one is the kind of small lie that
+   * makes a player stop trusting the picture.
+   */
+  get lureVisible(): boolean {
+    return this.phase !== 'read' && !this.line.isBroken
   }
 }

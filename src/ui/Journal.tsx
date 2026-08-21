@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { gameStore, useGame } from '../engine/store.ts'
-import { chapter } from '../content/index.ts'
+import { chapter, species as speciesById } from '../content/index.ts'
+import { describeUnlock, isChapterComplete, remainingUnlocks } from '../sim/progress.ts'
 import { JournalPage, type Restoration } from './JournalPage.tsx'
 
 /**
@@ -15,11 +16,35 @@ import { JournalPage, type Restoration } from './JournalPage.tsx'
  * what the game is about.
  */
 export function Journal({ chapterId }: { chapterId: string }) {
-  const pages = chapter(chapterId).pages
+  const ch = chapter(chapterId)
+  const pages = ch.pages
   const restored = useGame((s) => s.pagesRestored)
   const restoring = useGame((s) => s.restoring)
   const hasSeen = useGame((s) => s.hasSeenRestoration)
+  const celebrated = useGame((s) => s.chaptersCelebrated)
+  const catches = useGame((s) => s.catchLog)
   const [spread, setSpread] = useState(0)
+
+  const remaining = remainingUnlocks(ch, restored)
+  const done = isChapterComplete(ch, restored) && !restoring
+  // Shown once, on the trip that finishes the chapter.
+  const showClose = done && !celebrated.includes(chapterId)
+
+  /**
+   * What a missing page needs, written under it.
+   *
+   * §6.1 keeps the game from advising the player about the water. This is the
+   * journal saying what it is missing, which is the premise of the whole
+   * chapter — without it the win condition was a rule in a JSON file and a
+   * page that quietly appeared in a book nobody had a reason to open.
+   */
+  const wantedFor = (id: string): string | null => {
+    if (restored.includes(id) || id === restoring) return null
+    const rule = ch.unlocks.find((u) => u.pageId === id)
+    if (!rule) return null
+    const name = rule.require.species ? speciesById(rule.require.species).displayName : 'a fish'
+    return describeUnlock(rule, name)
+  }
 
   // A restoration always shows the page it is restoring.
   const restoringIndex = restoring ? pages.indexOf(restoring) : -1
@@ -39,7 +64,10 @@ export function Journal({ chapterId }: { chapterId: string }) {
     <div className="journal">
       <div className="journal-spread">
         {visible.map((id) => (
-          <JournalPage key={id} pageId={id} mode={modeFor(id)} onRestored={finish} />
+          <div className="journal-leaf" key={id}>
+            <JournalPage pageId={id} mode={modeFor(id)} onRestored={finish} />
+            {wantedFor(id) && <p className="journal-wanted">{wantedFor(id)}</p>}
+          </div>
         ))}
       </div>
 
@@ -53,7 +81,9 @@ export function Journal({ chapterId }: { chapterId: string }) {
             />
           ))}
         </div>
-        <span className="journal-chapter">chapter 1</span>
+        <span className="journal-chapter">
+          {done ? 'chapter 1 · complete' : `chapter 1 · ${remaining.length} to find`}
+        </span>
       </div>
 
       {!restoring && spreads > 1 && (
@@ -78,7 +108,7 @@ export function Journal({ chapterId }: { chapterId: string }) {
         </button>
       )}
 
-      {!restoring && (
+      {!restoring && !showClose && (
         <button
           className="journal-close"
           data-interactive
@@ -87,6 +117,45 @@ export function Journal({ chapterId }: { chapterId: string }) {
           Close
         </button>
       )}
+
+      {showClose && <ChapterClose title={ch.title} catches={catches.length} chapterId={chapterId} />}
+    </div>
+  )
+}
+
+/**
+ * The end of the chapter.
+ *
+ * The only moment in the game that says "you have finished something", and it
+ * is the journal that says it, because the journal is the thing that was
+ * broken. It counts fish because the fish are what mended it.
+ */
+function ChapterClose({
+  title,
+  catches,
+  chapterId,
+}: {
+  title: string
+  catches: number
+  chapterId: string
+}) {
+  const close = () => {
+    gameStore.getState().celebrate(chapterId)
+    gameStore.getState().setScreen('fishing')
+  }
+  return (
+    <div className="sheet chapter-close">
+      <h2>{title}</h2>
+      <p className="chapter-close-line">Every page back.</p>
+      <p className="note">
+        {catches === 1 ? 'One fish' : `${catches} fish`} on the flat, and the book is whole again.
+        The water is still there.
+      </p>
+      <div className="sheet-foot">
+        <button data-interactive onClick={close}>
+          Back on the water
+        </button>
+      </div>
     </div>
   )
 }

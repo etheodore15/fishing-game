@@ -1,20 +1,34 @@
 import { Buffer, BufferUsage, Container, Geometry, GlProgram, Mesh, Shader, UniformGroup } from 'pixi.js'
+import {
+  LURE_LENGTH_M,
+  LURE_MAX_HALF,
+  LURE_STATIONS,
+  lureShade,
+  lureHalf,
+  lureHeading,
+  lureX,
+  lureY,
+  solveLure,
+} from '../art/lureRig.ts'
 import { SEGMENTS } from '../sim/line.ts'
 import { ROD_SAMPLES } from '../sim/rod.ts'
 import type { FishingLine } from '../sim/line.ts'
 import type { Rod } from '../sim/rod.ts'
+import type { LureState } from '../sim/types.ts'
 import tackleVert from './shaders/tackle.vert?raw'
 import tackleFrag from './shaders/tackle.frag?raw'
 
 const PROGRAM = GlProgram.from({ vertex: tackleVert, fragment: tackleFrag, name: 'tackle' })
 
 const FLOATS_PER_VERTEX = 3
-/** Line points plus rod samples, each contributing a pair of ribbon vertices. */
+/** Line points, rod samples and lure stations, each a pair of ribbon vertices. */
 const LINE_POINTS = SEGMENTS + 1
-const TOTAL_POINTS = LINE_POINTS + ROD_SAMPLES
+const ROD_BASE = LINE_POINTS
+const LURE_BASE = LINE_POINTS + ROD_SAMPLES
+const TOTAL_POINTS = LURE_BASE + LURE_STATIONS
 
 /**
- * Rod and line, drawn as tapered ribbons in one mesh (§8.3, §8.4).
+ * Rod, line and lure, drawn as tapered ribbons in one mesh (§8.3, §8.4).
  *
  * Widths are in metres and converted by the world container's scale, so the
  * line is genuinely 2px at the rod tip narrowing to 1px at any screen density
@@ -30,8 +44,8 @@ export class TackleRenderer {
   constructor() {
     this.buffer = new Buffer({ data: this.vertices, usage: BufferUsage.VERTEX | BufferUsage.COPY_DST })
 
-    // Two independent strips: the line, then the rod blank. They never join,
-    // so the strips are indexed separately rather than as one run.
+    // Three independent strips: the line, the rod blank, the lure. They never
+    // join, so each is indexed separately rather than as one run.
     const idx: number[] = []
     const strip = (base: number, points: number) => {
       for (let i = 0; i < points - 1; i++) {
@@ -40,7 +54,8 @@ export class TackleRenderer {
       }
     }
     strip(0, LINE_POINTS)
-    strip(LINE_POINTS * 2, ROD_SAMPLES)
+    strip(ROD_BASE * 2, ROD_SAMPLES)
+    strip(LURE_BASE * 2, LURE_STATIONS)
 
     const stride = FLOATS_PER_VERTEX * 4
     const geometry = new Geometry({
@@ -67,11 +82,25 @@ export class TackleRenderer {
     this.view.interactiveChildren = false
   }
 
+  /** Smoothed, so the plastic swings round rather than snapping to a new angle. */
+  private lureAngle = Math.PI / 2
+
   /**
    * @param tension 0-1. The line pales toward palette[5] as it loads (§8.3).
    * @param pxPerM  so ribbon widths can be specified in pixels and held there.
    */
-  render(line: FishingLine, rod: Rod, tension: number, lineVisible: boolean, pxPerM: number, palette: Float32Array): void {
+  render(
+    line: FishingLine,
+    rod: Rod,
+    lure: LureState,
+    tension: number,
+    lineVisible: boolean,
+    lureVisible: boolean,
+    dt: number,
+    t: number,
+    pxPerM: number,
+    palette: Float32Array,
+  ): void {
     const v = this.vertices
     const px = 1 / Math.max(1, pxPerM)
 
@@ -85,10 +114,36 @@ export class TackleRenderer {
 
     // ---- rod blank: thick at the butt, a whip at the tip ----
     for (let i = 0; i < ROD_SAMPLES; i++) {
-      const t = i / (ROD_SAMPLES - 1)
-      const halfWidth = (px * (7 - 5.6 * t)) / 2
+      const u = i / (ROD_SAMPLES - 1)
+      const halfWidth = (px * (7 - 5.6 * u)) / 2
       const [nx, ny] = normalAt(rod.x, rod.y, i, ROD_SAMPLES)
-      writePair(v, LINE_POINTS + i, rod.x[i]!, rod.y[i]!, nx * halfWidth, ny * halfWidth, 0)
+      writePair(v, ROD_BASE + i, rod.x[i]!, rod.y[i]!, nx * halfWidth, ny * halfWidth, 0)
+    }
+
+    // ---- lure: a paddle-tail plastic, working or hanging ----
+    //
+    // How hard the tail is beating is the retrieve, told back to the player:
+    // the speed it is being drawn at, plus whatever the last twitch or hop put
+    // into it. A lure sitting on the bottom does not move, and that stillness
+    // is information — it is the difference between fishing and waiting.
+    this.lureAngle = lureHeading(lure.vx, lure.vy, this.lureAngle, dt)
+    const drive = lureVisible ? Math.min(1, lure.speed * 0.85 + lure.kick * 0.75) : 0
+    solveLure({
+      x: lure.x,
+      y: lure.y,
+      heading: this.lureAngle,
+      lengthM: LURE_LENGTH_M,
+      t,
+      drive,
+    })
+    // The whole profile is scaled together rather than each station being
+    // floored on its own: a minimum width applied per-station turns a tapered
+    // body into a sausage, and the taper is the only reason it reads as a lure.
+    const widen = Math.max(1, (px * 1.8) / (LURE_MAX_HALF * LURE_LENGTH_M))
+    for (let i = 0; i < LURE_STATIONS; i++) {
+      const [nx, ny] = normalAt(lureX, lureY, i, LURE_STATIONS)
+      const halfWidth = lureVisible ? lureHalf[i]! * widen : 0
+      writePair(v, LURE_BASE + i, lureX[i]!, lureY[i]!, nx * halfWidth, ny * halfWidth, lureShade[i]!)
     }
 
     this.buffer.update()

@@ -76,7 +76,7 @@ export class World {
   readonly lure: LureState = {
     x: 0, y: 0, speed: 0, vx: 0, vy: 0,
     inWater: false, airborne: false,
-    cadence: null, cadenceQuality: 0, cadenceHz: 0,
+    cadence: null, cadenceQuality: 0, cadenceHz: 0, kick: 0,
   }
 
   readonly conditions: Conditions
@@ -181,6 +181,39 @@ export class World {
         this.fish.push(f)
       }
     }
+  }
+
+  private nextFishSeed = 9000
+
+  /**
+   * Measure it, and put it back.
+   *
+   * A landed fish used to stay in the water forever in the state it was landed
+   * in — not swimming, not spooked, not gone, just lying there — and nothing
+   * took its place. Four fish, four catches, and the flat was a museum.
+   *
+   * It also quietly decided whether the chapter could be finished at all. The
+   * size curve puts a forty-five is about two fish in five, so with four fish
+   * and no restock roughly one session in seven contained nothing big enough
+   * to restore the last page, and no amount of fishing would have found one.
+   *
+   * The released fish leaves the flat, and another moves onto it — the stock
+   * stays at four, which is what §13 asks: the tide changes the behaviour, not
+   * the number of fish.
+   */
+  private releaseAndRestock(fish: Fish): void {
+    const i = this.fish.indexOf(fish)
+    if (i < 0) return
+    const sp = fish.species
+    const fresh = new Fish(sp, (this.nextFishSeed += 137), Fish.drawLength(sp, this.rand))
+    // Onto the outer half of the flat: clear of the rod, so it does not appear
+    // under the player's nose, but not so far out that it takes three minutes
+    // of lie-hopping to work its way back into casting range.
+    const width = Math.max(4, this.water.width)
+    fresh.x = width * (0.55 + this.rand() * 0.32)
+    fresh.y = Math.max(0.4, this.conditions.bedDepth(fresh.x) - 0.4 - this.rand() * 0.6)
+    fresh.heading = Math.PI
+    this.fish[i] = fresh
   }
 
   /** Called once the stage knows its size. */
@@ -361,7 +394,9 @@ export class World {
    * phase the player reads, not a frame that flashes past.
    */
   dismissLog(): void {
+    const landed = this.trip.fight.fish
     this.trip.finishLog()
+    if (landed) this.releaseAndRestock(landed)
   }
 
   /** §6.5 — measure it, write it up, and see whether it restores a page. */
@@ -463,6 +498,8 @@ export class World {
     return best
   }
 
+  private lastRenderTime = 0
+
   render(clock: Clock): void {
     const vp = this.stage.viewport
     const s = this.scene
@@ -493,7 +530,22 @@ export class World {
     const lightY = Math.cos(s.lightAngle)
     this.baitView.render(this.bait, palette)
     this.fishView.render(this.fish, clock.renderTime, palette, lightX, lightY, this.light.level)
-    this.tackleView.render(this.trip.line, this.trip.rod, this.trip.tension, this.trip.lineVisible, vp.pxPerM, palette)
+    // The lure's heading is smoothed across frames, so it wants the render
+    // delta rather than the fixed step.
+    const renderDt = Math.min(0.1, Math.max(0, clock.renderTime - this.lastRenderTime))
+    this.lastRenderTime = clock.renderTime
+    this.tackleView.render(
+      this.trip.line,
+      this.trip.rod,
+      this.lure,
+      this.trip.tension,
+      this.trip.lineVisible,
+      this.trip.lureVisible,
+      renderDt,
+      clock.renderTime,
+      vp.pxPerM,
+      palette,
+    )
     this.surfaceFxView.render(this.surfaceFx, palette)
     this.subFxView.render(this.subFx, palette)
 

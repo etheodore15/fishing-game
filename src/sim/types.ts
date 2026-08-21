@@ -18,6 +18,12 @@ export interface LureState {
   cadenceQuality: number
   /** Beats per second of the current retrieve, for the spook test. */
   cadenceHz: number
+  /**
+   * 0-1, decaying. A twitch or a hop kicks the tail over; this is what the rig
+   * reads so the plastic answers the player's thumb instead of the other way
+   * round.
+   */
+  kick: number
 }
 
 /** Live conditions, read by every sub-simulation. */

@@ -140,7 +140,7 @@ export function runBite(opts: {
   const lure: LureState = {
     x: 0, y: 0, speed: 0, vx: 0, vy: 0,
     inWater: false, airborne: false,
-    cadence: null, cadenceQuality: 0, cadenceHz: 0,
+    cadence: null, cadenceQuality: 0, cadenceHz: 0, kick: 0,
   }
 
   const rand = rng(opts.seed ?? 4409)

@@ -19,6 +19,8 @@ export interface SaveState {
   catchLog: CatchRecord[]
   settings: Settings
   hasSeenRestoration: boolean
+  /** Chapters whose completion card the player has already seen. */
+  chaptersCelebrated?: string[]
   lastPlayed: number
 }
 
@@ -89,6 +91,7 @@ export function snapshot(): SaveState {
     catchLog: s.catchLog,
     settings: s.settings,
     hasSeenRestoration: s.hasSeenRestoration,
+    chaptersCelebrated: s.chaptersCelebrated,
     lastPlayed: Date.now(),
   }
 }
@@ -106,6 +109,7 @@ export function applySave(s: SaveState): void {
     pagesRestored: s.pagesRestored?.length ? s.pagesRestored : ['p001'],
     catchLog: s.catchLog ?? [],
     hasSeenRestoration: Boolean(s.hasSeenRestoration),
+    chaptersCelebrated: s.chaptersCelebrated ?? [],
     settings: { ...gameStore.getState().settings, ...s.settings },
   })
 }
@@ -117,7 +121,7 @@ export function applySave(s: SaveState): void {
 export function autosave(): () => void {
   let last = ''
   const unsubscribe = gameStore.subscribe((s) => {
-    const key = `${s.pagesRestored.join()}|${s.catchLog.length}|${s.hasSeenRestoration}|${JSON.stringify(s.settings)}`
+    const key = `${s.pagesRestored.join()}|${s.catchLog.length}|${s.hasSeenRestoration}|${s.chaptersCelebrated.join()}|${JSON.stringify(s.settings)}`
     if (key === last) return
     last = key
     void save()

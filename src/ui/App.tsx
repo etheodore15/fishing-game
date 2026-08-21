@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { gameStore, useGame } from '../engine/store.ts'
+import { isChapterComplete } from '../sim/progress.ts'
 import type { World } from '../sim/world.ts'
 import { CatchCard } from './CatchCard.tsx'
 import { Guide } from './Guide.tsx'
@@ -19,6 +20,10 @@ export function App({ world }: { world: World }) {
   const screen = useGame((s) => s.screen)
   const phase = useGame((s) => s.phase)
   const loss = useGame((s) => s.loss)
+  const restored = useGame((s) => s.pagesRestored)
+  // The one pointer from the water to the book: a player who never opens the
+  // journal never learns the chapter has an end.
+  const pageOutstanding = !isChapterComplete(world.chapter, restored)
 
   // Clear a loss banner after it has been read. The animation and sound carry
   // the information; the words are only there to name what happened.
@@ -40,7 +45,12 @@ export function App({ world }: { world: World }) {
           {loss && <LossBanner kind={loss} />}
           {phase === 'log' && <CatchCard onDismiss={() => world.dismissLog()} />}
           <div className="corner-nav">
-            <button data-interactive onClick={() => gameStore.getState().setScreen('journal')}>
+            <button
+              data-interactive
+              className={pageOutstanding ? 'has-work' : undefined}
+              aria-label={pageOutstanding ? 'Journal, a page still missing' : 'Journal'}
+              onClick={() => gameStore.getState().setScreen('journal')}
+            >
               Journal
             </button>
             <button
