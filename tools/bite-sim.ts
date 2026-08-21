@@ -59,6 +59,16 @@ export interface BiteRun {
   closestM: number
   /** How many casts it took. */
   casts: number
+  /**
+   * Where the first cast actually landed, metres out from the rod tip, and how
+   * long the rod held the lure before throwing it.
+   *
+   * The cast stopped being instantaneous when the rod got a stroke: the flick
+   * starts a wind-up and the lure leaves at the end of the forward swing. Both
+   * of those are things a player feels, so both are measured.
+   */
+  castReachM: number | null
+  castHoldSec: number | null
   /** Seconds simulated. */
   elapsed: number
   /** Fraction of retrieve time with a fish inside perception range. */
@@ -187,13 +197,20 @@ export function runBite(opts: {
   let outcome: string | null = null
   const noop = () => {}
   let casts = 0
+  let castReachM: number | null = null
+  let castHoldSec: number | null = null
   const trip = new Trip(lure, water, cond, fish, {
     onPhase: (p) => {
       if (p !== 'fight') return
       committed = true
       hooked = trip.fight.fish?.species.id ?? null
     },
-    onCast: () => { casts += 1 }, onSplash: noop, onSnag: noop,
+    onCast: () => {
+      casts += 1
+      castHoldSec ??= simTime - castStartedAt
+    },
+    onSplash: (x) => { castReachM ??= x - trip.rod.tipX },
+    onSnag: noop,
     onHeadshake: noop, onSurge: noop, onOutcome: (o) => { outcome = o },
   })
   trip.tackle = lureById(opts.lureId ?? 'soft-plastic')
@@ -345,6 +362,8 @@ export function runBite(opts: {
     peakInterest: peak,
     closestM: closest,
     casts,
+    castReachM,
+    castHoldSec,
     elapsed: simTime,
     inRangeFraction: workTime > 0 ? inRange / workTime : 0,
     willingness: cond.willingness,

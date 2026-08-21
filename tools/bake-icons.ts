@@ -105,7 +105,7 @@ function rodShape(): { polys: Poly[]; line: Poly } {
   const rod = new Rod()
   // Run it to a settled bend rather than posing it: the bend curve is the
   // rod's own solution to being loaded, and hand-drawing it would be a lie.
-  for (let i = 0; i < 400; i++) rod.update(1 / 60, 0.82, 9, 2.4, true)
+  for (let i = 0; i < 400; i++) rod.update(1 / 60, 0.82, 9, 2.4, 'fight')
 
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
   for (let i = 0; i < ROD_SAMPLES; i++) {

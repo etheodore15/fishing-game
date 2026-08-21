@@ -6,7 +6,7 @@ import type { Phase } from '../engine/store.ts'
 import { Fight, type FightOutcome } from './hookup.ts'
 import type { Fish } from './fish.ts'
 import { FishingLine } from './line.ts'
-import { Rod, BUTT_X } from './rod.ts'
+import { Rod, BUTT_X, type RodPose } from './rod.ts'
 import type { Conditions, LureState } from './types.ts'
 import type { WaterField } from './water.ts'
 
@@ -53,6 +53,23 @@ export class Trip {
   private lureVX = 0
   private lureVY = 0
   private castPower = 0
+  /**
+   * A cast the rod has been asked for but has not thrown yet.
+   *
+   * The flick starts the stroke; the lure leaves the tip when the stroke gets
+   * to the end of the forward swing, which is a fifth of a second later. Until
+   * then it rides the tip, which is what a cast actually looks like and what
+   * makes the flick feel like it went into the rod rather than past it.
+   */
+  private pending: { dx: number; dy: number; power: number; worldWidth: number } | null = null
+  /**
+   * True once the lure is gone — snagged, or on the far side of a parted line.
+   *
+   * Between casts the rod holds the lure on a short drop, which is the whole
+   * reason the rod is being held at all. It must not hold one that is hanging
+   * off an oyster rack.
+   */
+  private lureLost = false
   private holding = false
   private marks: CadenceMark[] = []
   private lastHopAt = -Infinity
@@ -145,6 +162,9 @@ export class Trip {
         if (this.phase === 'work') {
           this.mark('twitch', t, 1.35)
           this.lastGestureAt = t
+          // Smaller than a hop, and sharper — that difference is the whole
+          // tell between the two retrieves, seen from the rod.
+          this.rod.strike(-0.03, -0.055)
         }
         break
       case 'hop':
@@ -158,6 +178,10 @@ export class Trip {
           this.lure.kick = 1
           this.lureVY -= 0.9
           this.lureVX += Math.sign(this.rod.tipX - this.lure.x) * 0.85
+          // A hop is made with the rod, not the reel: the tip lifts and comes
+          // back. Without this the retrieve happened entirely at the far end
+          // of the line and the rod stood there like a fence post.
+          this.rod.strike(-0.045, -0.1)
         }
         break
       case 'holdstart':
@@ -185,33 +209,31 @@ export class Trip {
     }
   }
 
-  /** §6.2 — vector length is power, angle is direction. */
+  /**
+   * §6.2 — vector length is power, angle is direction.
+   *
+   * The flick starts the rod's stroke and hands it the cast to throw; nothing
+   * flies yet. `release` below is where the lure actually leaves, and it is
+   * the rod that decides when.
+   */
   private launch(nx: number, ny: number, dx: number, dy: number, power: number, worldWidth: number): void {
     this.lastOutcome = null
-    // Solve for the launch speed that reaches the wanted share of the water.
-    // Ideal ballistic range is v^2/g at 45 degrees; drag eats a fifth of it.
-    // Casting at any other angle falls short, which is the skill in it.
-    const span = Math.max(1, worldWidth - this.rod.tipX)
-    // A forty-gram metal goes further than a soft plastic on the same swing,
-    // and neither of them may end up in the far bank.
-    const reach = Math.min(
-      lerp(CAST.minPowerReach, CAST.fullPowerReach, power) * span * this.tackle.reach,
-      span * 0.98,
-    )
-    const speed = Math.sqrt((reach * CAST.gravity) / CAST.dragEfficiency)
-    // A flick up-screen throws the lure out; screen y is inverted from world y.
-    this.lureVX = dx * speed
-    this.lureVY = dy * speed
+    this.pending = { dx, dy, power, worldWidth }
     this.castPower = power
+    // How much of the flick was up the screen rather than across it, which is
+    // what decides where the stroke finishes: a lob ends with the tip high, a
+    // hard flat cast ends with it pointing after the lure.
+    this.rod.beginCast(power, -dy)
 
-    this.lure.x = clamp(this.rod.tipX, 0.3, worldWidth - 0.3)
-    this.lure.y = this.rod.tipY
+    this.lureLost = false
     this.lure.airborne = true
     this.lure.inWater = false
     this.lure.cadence = null
     this.lure.cadenceQuality = 0
     this.lure.cadenceHz = 0
     this.lure.kick = 0
+    this.lureVX = 0
+    this.lureVY = 0
     this.marks.length = 0
     this.lastHopAt = -Infinity
     this.sinceLanded = 0
@@ -219,9 +241,41 @@ export class Trip {
     this.everCast = true
     this.lastGestureAt = -Infinity
     this.setPhase('cast')
-    this.events.onCast(power)
     void nx
     void ny
+  }
+
+  /**
+   * The lure leaves the tip.
+   *
+   * Solve for the launch speed that reaches the wanted share of the water.
+   * Ideal ballistic range is v^2/g at 45 degrees; drag eats a fifth of it.
+   * Casting at any other angle falls short, which is the skill in it.
+   *
+   * The rod's own tip speed is deliberately not added. It is real, and it is
+   * most of a real cast, but the reach here is solved against the width of the
+   * water so that full power stops just short of the far bank — and a stroke
+   * that threw the lure an extra rod-tip's worth would put every hard cast
+   * into it.
+   */
+  private release(): void {
+    const cast = this.pending
+    if (!cast) return
+    this.pending = null
+
+    const span = Math.max(1, cast.worldWidth - this.rod.tipX)
+    // A forty-gram metal goes further than a soft plastic on the same swing,
+    // and neither of them may end up in the far bank.
+    const reach = Math.min(
+      lerp(CAST.minPowerReach, CAST.fullPowerReach, cast.power) * span * this.tackle.reach,
+      span * 0.98,
+    )
+    const speed = Math.sqrt((reach * CAST.gravity) / CAST.dragEfficiency)
+    // A flick up-screen throws the lure out; screen y is inverted from world y.
+    this.lureVX = cast.dx * speed
+    this.lureVY = cast.dy * speed
+    this.lure.x = clamp(this.lure.x, 0.3, cast.worldWidth - 0.3)
+    this.events.onCast(cast.power)
   }
 
   step(dt: number, t: number, windKt: number, windDirX: number): void {
@@ -250,6 +304,13 @@ export class Trip {
 
   /** §6.2 — ballistic, wind-affected, and snaggable. */
   private stepCast(dt: number, windKt: number, windDirX: number, surfaceAt: (x: number) => number): void {
+    // Still on the tip, going wherever the tip goes. `stepTackle` puts it
+    // there, because that is where the rod's shape is worked out.
+    if (this.pending) {
+      if (this.rod.holdingCast) return
+      this.release()
+    }
+
     this.lureVY += CAST.gravity * dt
     this.lureVX += windKt * CAST.windDriftPerKt * windDirX * dt
     const drag = 1 - CAST.airDrag * dt
@@ -305,6 +366,8 @@ export class Trip {
     this.lure.airborne = false
     this.lure.inWater = false
     this.lure.speed = 0
+    this.lureLost = true
+    this.pending = null
     this.lastOutcome = null
     this.events.onSnag(x, y)
     this.setPhase('read')
@@ -481,6 +544,11 @@ export class Trip {
     this.holding = false
 
     // §6.4: three losses, three distinct animations.
+    // Two of the three take the plastic with them, and the rod goes back to
+    // being held with nothing on it until the player ties on again — which is
+    // what the next flick is.
+    if (outcome === 'line-break' || outcome === 'bust-off') this.lureLost = true
+
     if (outcome === 'line-break') {
       // Parts somewhere up the line and whips back. The rod unloads violently
       // and most of the line is gone; that kick is the whole tell.
@@ -511,20 +579,52 @@ export class Trip {
   }
 
   private stepTackle(dt: number, surfaceAt: (x: number) => number, windKt: number, windDirX: number): void {
-    const showLine = this.phase !== 'read' || this.line.isBroken
-    const targetX = showLine ? this.lure.x : this.rod.tipX + 0.3
-    const targetY = showLine ? this.lure.y : this.rod.tipY + 0.2
+    /**
+     * Three postures, and the trip says which.
+     *
+     * Held up and still between casts, dropped and leaning after the lure
+     * through a retrieve, up and loaded on a fish. The cast is not one of
+     * them: it is a stroke on its own clock, and while it runs it overrides
+     * whatever posture the trip has asked for.
+     */
+    const pose: RodPose =
+      this.phase === 'fight' ? 'fight' : this.phase === 'work' ? 'work' : 'rest'
 
-    // §8.4: the rod bend IS the tension. In every phase but the fight there is
-    // no load on it, so it stands up straight — which is itself information.
-    const tension = this.phase === 'fight' ? this.fight.tension : 0
-    this.rod.update(dt, tension, targetX, targetY, this.phase === 'fight')
+    // §8.4: the rod bend IS the tension, and a fight is the only thing that
+    // puts a fish's worth of it in the blank. A lure being swum home puts a
+    // little weight in the tip — a tenth of what a fish does, off the lure's
+    // own speed — which is a rod doing what a rod does and could not be
+    // mistaken for a fight by anyone who has seen one.
+    const tension =
+      this.phase === 'fight'
+        ? this.fight.tension
+        : this.phase === 'work'
+          ? clamp(this.lure.speed * 0.1, 0, 0.13)
+          : 0
+
+    this.rod.update(dt, tension, this.lure.x, this.lure.y, pose)
+
+    // Between casts, and through the wind-up, the lure hangs off the tip on a
+    // short drop and goes wherever the tip takes it. That is the whole reason
+    // the rod is up: there is something on the end of it.
+    if (this.holdsLure) this.rideTip(dt)
+
+    const showLine = this.lineVisible
+    const targetX = this.lure.x
+    const targetY = this.lure.y
 
     // How briskly the line is eased onto the shape its own length implies.
     // Under load a line settles almost at once; a lure being swum home is a
     // lighter, slower version of the same thing; airborne it is doing whatever
     // the cast is doing and nothing should tidy it.
-    const settle = this.phase === 'fight' ? 0.16 + this.fight.tension * 0.16 : this.phase === 'work' ? 0.1 : 0
+    const settle =
+      this.phase === 'fight'
+        ? 0.16 + this.fight.tension * 0.16
+        : this.phase === 'work'
+          ? 0.1
+          : this.holdsLure
+            ? 0.5
+            : 0
 
     this.line.step(
       dt,
@@ -546,7 +646,39 @@ export class Trip {
   }
 
   get lineVisible(): boolean {
-    return this.phase !== 'read' || this.line.isBroken
+    return !this.lureLost || this.line.isBroken
+  }
+
+  /**
+   * True when the lure is hanging off the tip rather than out in the water:
+   * between casts, and through the wind-up before the rod throws it.
+   */
+  private get holdsLure(): boolean {
+    return !this.lureLost && (this.phase === 'read' || this.phase === 'log' || this.rod.holdingCast)
+  }
+
+  /** Metres of line left out between casts. A hand's length of drop. */
+  private static readonly DROP = 0.3
+
+  /**
+   * Hang the lure off the tip and let it inherit the tip's speed.
+   *
+   * Which is what makes the wind-up read as a cast: the lure swings back with
+   * the rod, and it is already travelling when the rod lets go of it.
+   */
+  private rideTip(dt: number): void {
+    const px = this.lure.x
+    const py = this.lure.y
+    this.lure.x = this.rod.tipX + 0.02
+    this.lure.y = this.rod.tipY + Trip.DROP
+    this.lure.airborne = this.phase === 'cast'
+    this.lure.inWater = false
+    this.lure.vx = (this.lure.x - px) / Math.max(dt, 1e-4)
+    this.lure.vy = (this.lure.y - py) / Math.max(dt, 1e-4)
+    this.lure.speed = Math.hypot(this.lure.vx, this.lure.vy)
+    this.lureVX = this.lure.vx
+    this.lureVY = this.lure.vy
+    this.line.lineOut = Trip.DROP + 0.02
   }
 
   /**
@@ -557,6 +689,6 @@ export class Trip {
    * makes a player stop trusting the picture.
    */
   get lureVisible(): boolean {
-    return this.phase !== 'read' && !this.line.isBroken
+    return !this.lureLost && !this.line.isBroken
   }
 }

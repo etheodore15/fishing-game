@@ -91,9 +91,17 @@ test('the silhouettes are drawn, and they differ', () => {
 })
 
 test('the right lure for the retrieve is markedly faster', () => {
-  // The whole feature, as a measurement. Each cell is eight trips on a run-in
-  // with the roster on the water; the number is seconds of retrieve to a bite.
-  const SEEDS = [4409, 15, 77, 903, 5150, 61, 2024, 8]
+  // The whole feature, as a measurement. Each cell is sixteen trips on a
+  // run-in with the roster on the water; the number is seconds of retrieve to
+  // a bite.
+  //
+  // Sixteen and not eight. Eight was enough to show the shape of the table and
+  // not enough to be stable: the closest pair of cells sat about 1.3x apart on
+  // that sample and drifted either side of it whenever anything upstream moved
+  // the seeds along — the rod's cast stroke, which delays each cast by a fifth
+  // of a second, was enough to fail it. The same pair is 1.4x apart here and
+  // every other pair is further, which is the claim actually being made.
+  const SEEDS = [4409, 15, 77, 903, 5150, 61, 2024, 8, 331, 1207, 99, 45, 7788, 512, 6, 1984]
   const seconds = (lureId: string, script: 'hop' | 'twitch' | 'steady') => {
     const runs = SEEDS.map((seed) =>
       runBite({ hopIntervalSec: 1.2, script, seed, maxCasts: 14, tideShiftSec: 240, lureId }),

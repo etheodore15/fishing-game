@@ -161,28 +161,28 @@ test('breaking twice does not move the break', () => {
 /** §8.4 — the bend IS the tension display, so it has to actually track it. */
 test('the rod bends with tension and springs back without it', () => {
   const rod = new Rod()
-  for (let i = 0; i < 200; i++) rod.update(1 / 60, 0, 8, 1, false)
+  for (let i = 0; i < 200; i++) rod.update(1 / 60, 0, 8, 1, 'rest')
   const rest = rod.load
   const restTipY = rod.tipY
   assert.ok(rest < 0.02, `an unloaded rod was bent ${rest}`)
 
-  for (let i = 0; i < 200; i++) rod.update(1 / 60, 0.9, 8, 1, true)
+  for (let i = 0; i < 200; i++) rod.update(1 / 60, 0.9, 8, 1, 'fight')
   assert.ok(rod.load > 0.8, `a loaded rod only bent ${rod.load}`)
   assert.ok(rod.tipY > restTipY, 'loading the rod did not pull the tip down')
 
-  for (let i = 0; i < 200; i++) rod.update(1 / 60, 0, 8, 1, false)
+  for (let i = 0; i < 200; i++) rod.update(1 / 60, 0, 8, 1, 'rest')
   assert.ok(rod.load < 0.02, 'the rod did not spring back')
 })
 
 test('the rod loads faster than it unloads, so a surge has weight', () => {
   const load = new Rod()
-  for (let i = 0; i < 12; i++) load.update(1 / 60, 1, 8, 1, true)
+  for (let i = 0; i < 12; i++) load.update(1 / 60, 1, 8, 1, 'fight')
   const loaded = load.load
 
   const unload = new Rod()
-  for (let i = 0; i < 400; i++) unload.update(1 / 60, 1, 8, 1, true)
+  for (let i = 0; i < 400; i++) unload.update(1 / 60, 1, 8, 1, 'fight')
   const from = unload.load
-  for (let i = 0; i < 12; i++) unload.update(1 / 60, 0, 8, 1, false)
+  for (let i = 0; i < 12; i++) unload.update(1 / 60, 0, 8, 1, 'rest')
   const shed = from - unload.load
 
   assert.ok(loaded > shed, `rod loaded ${loaded} but shed ${shed} in the same time`)
@@ -190,18 +190,18 @@ test('the rod loads faster than it unloads, so a surge has weight', () => {
 
 test('a head-shake rings the tip and then settles', () => {
   const rod = new Rod()
-  for (let i = 0; i < 200; i++) rod.update(1 / 60, 0.5, 8, 1, true)
+  for (let i = 0; i < 200; i++) rod.update(1 / 60, 0.5, 8, 1, 'fight')
   const settled = rod.tipY
   rod.strike(0.09, -0.07)
-  rod.update(1 / 60, 0.5, 8, 1, true)
+  rod.update(1 / 60, 0.5, 8, 1, 'fight')
   assert.notEqual(rod.tipY, settled)
-  for (let i = 0; i < 120; i++) rod.update(1 / 60, 0.5, 8, 1, true)
+  for (let i = 0; i < 120; i++) rod.update(1 / 60, 0.5, 8, 1, 'fight')
   assert.ok(Math.abs(rod.tipY - settled) < 0.01, 'the tip never stopped ringing')
 })
 
 test('the rod is sampled along its whole length', () => {
   const rod = new Rod()
-  for (let i = 0; i < 100; i++) rod.update(1 / 60, 0, 8, 1, false)
+  for (let i = 0; i < 100; i++) rod.update(1 / 60, 0, 8, 1, 'rest')
   let run = 0
   for (let i = 1; i < ROD_SAMPLES; i++) {
     run += Math.hypot(rod.x[i]! - rod.x[i - 1]!, rod.y[i]! - rod.y[i - 1]!)
