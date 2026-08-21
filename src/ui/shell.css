@@ -490,6 +490,30 @@ html, body {
 
 .journal-dots { display: flex; align-items: center; gap: 0.55rem; }
 
+/* The two halves of the book: what the river wrote, and what the player did. */
+.journal-tabs {
+  display: flex;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+
+.journal-tabs button {
+  font-family: var(--font-utility);
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--paper);
+  background: transparent;
+  border: 1px solid currentColor;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 0.8rem;
+  opacity: 0.5;
+  cursor: pointer;
+}
+
+.journal-tabs button.on { opacity: 1; }
+
 .dot {
   width: 8px;
   height: 8px;

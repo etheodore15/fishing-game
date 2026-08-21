@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
-import { PAGE_H, PAGE_W, buildPage } from '../art/journalPage.ts'
+import { PAGE_H, PAGE_W, buildPage, type PageSource } from '../art/journalPage.ts'
 import { SPECIES, journalPage } from '../content/index.ts'
 
 /**
@@ -16,6 +16,14 @@ export type Restoration = 'clean' | 'stained' | 'restoring'
 interface Props {
   pageId: string
   mode: Restoration
+  /**
+   * A page that is not in the chapter's content.
+   *
+   * The catch record is written out of the save rather than off disk, and it is
+   * a page of the journal like any other — same paper, same hand, same
+   * machinery — so it arrives here as a source instead of an id.
+   */
+  source?: PageSource
   /** Called when a restoration animation finishes. */
   onRestored?: () => void
 }
@@ -36,8 +44,8 @@ const LIFT = 0.09
 const STAIN_CLEAR = 1.2
 const STAIN_FULL = -7.5
 
-export function JournalPage({ pageId, mode, onRestored }: Props) {
-  const src = journalPage(pageId)
+export function JournalPage({ pageId, mode, source, onRestored }: Props) {
+  const src = source ?? journalPage(pageId)
   const art = useMemo(
     () => buildPage(src, src.sketch === 'none' ? null : (SPECIES[src.sketch] ?? null)),
     [src],

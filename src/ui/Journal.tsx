@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { gameStore, useGame } from '../engine/store.ts'
 import { chapter, species as speciesById } from '../content/index.ts'
+import { recordLeaves } from '../art/recordPage.ts'
 import { describeUnlock, isChapterComplete, remainingUnlocks } from '../sim/progress.ts'
 import { JournalPage, type Restoration } from './JournalPage.tsx'
 
@@ -24,6 +25,7 @@ export function Journal({ chapterId }: { chapterId: string }) {
   const celebrated = useGame((s) => s.chaptersCelebrated)
   const catches = useGame((s) => s.catchLog)
   const [spread, setSpread] = useState(0)
+  const [view, setView] = useState<'pages' | 'record'>('pages')
 
   const remaining = remainingUnlocks(ch, restored)
   const done = isChapterComplete(ch, restored) && !restoring
@@ -46,10 +48,13 @@ export function Journal({ chapterId }: { chapterId: string }) {
     return describeUnlock(rule, name)
   }
 
-  // A restoration always shows the page it is restoring.
+  const leaves = recordLeaves(catches)
+  // A restoration always shows the page it is restoring, and never the record.
   const restoringIndex = restoring ? pages.indexOf(restoring) : -1
+  const showRecord = view === 'record' && restoringIndex < 0
+  const sheet = showRecord ? leaves.map((l) => l.id) : pages
   const base = restoringIndex >= 0 ? Math.floor(restoringIndex / 2) * 2 : spread * 2
-  const visible = pages.slice(base, base + 2)
+  const visible = sheet.slice(base, base + 2)
 
   const finish = useCallback(() => gameStore.getState().finishRestoration(), [])
 
@@ -58,32 +63,65 @@ export function Journal({ chapterId }: { chapterId: string }) {
     return restored.includes(id) ? 'clean' : 'stained'
   }
 
-  const spreads = Math.ceil(pages.length / 2)
+  const spreads = Math.max(1, Math.ceil(sheet.length / 2))
+  const flip = (to: 'pages' | 'record') => {
+    setView(to)
+    setSpread(0)
+  }
 
   return (
     <div className="journal">
       <div className="journal-spread">
         {visible.map((id) => (
           <div className="journal-leaf" key={id}>
-            <JournalPage pageId={id} mode={modeFor(id)} onRestored={finish} />
-            {wantedFor(id) && <p className="journal-wanted">{wantedFor(id)}</p>}
+            <JournalPage
+              pageId={id}
+              mode={showRecord ? 'clean' : modeFor(id)}
+              source={showRecord ? leaves.find((l) => l.id === id) : undefined}
+              onRestored={finish}
+            />
+            {!showRecord && wantedFor(id) && <p className="journal-wanted">{wantedFor(id)}</p>}
           </div>
         ))}
       </div>
 
       <div className="journal-foot">
-        <div className="journal-dots" role="group" aria-label="Chapter one pages">
-          {pages.map((id, i) => (
-            <span
-              key={id}
-              className={restored.includes(id) ? 'dot filled' : 'dot'}
-              aria-label={`Page ${i + 1}${restored.includes(id) ? ' restored' : ' not yet restored'}`}
-            />
-          ))}
-        </div>
+        {!showRecord && (
+          <div className="journal-dots" role="group" aria-label="Chapter one pages">
+            {pages.map((id, i) => (
+              <span
+                key={id}
+                className={restored.includes(id) ? 'dot filled' : 'dot'}
+                aria-label={`Page ${i + 1}${restored.includes(id) ? ' restored' : ' not yet restored'}`}
+              />
+            ))}
+          </div>
+        )}
         <span className="journal-chapter">
-          {done ? 'chapter 1 · complete' : `chapter 1 · ${remaining.length} to find`}
+          {showRecord
+            ? `record · ${catches.length === 1 ? 'one fish' : `${catches.length} fish`}`
+            : done
+              ? 'chapter 1 · complete'
+              : `chapter 1 · ${remaining.length} to find`}
         </span>
+        {!restoring && (
+          <div className="journal-tabs" role="group" aria-label="Journal sections">
+            <button
+              data-interactive
+              className={view === 'pages' ? 'on' : ''}
+              onClick={() => flip('pages')}
+            >
+              pages
+            </button>
+            <button
+              data-interactive
+              className={view === 'record' ? 'on' : ''}
+              onClick={() => flip('record')}
+            >
+              record
+            </button>
+          </div>
+        )}
       </div>
 
       {!restoring && spreads > 1 && (
