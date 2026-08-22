@@ -85,11 +85,27 @@ fs.writeFileSync(shippedSw, LEGACY_SW)
 
 let serving = 'a'
 let swSource = path.join(root, 'a', 'sw.js')
+/**
+ * Whether the host rewrites index.html away, as plenty of them do.
+ *
+ * `serve`, Netlify and a good few CDNs answer a request for `index.html` with
+ * a 301 to the clean URL. The worker asks for the shell by name, so on those
+ * hosts every navigation after the first got a redirected response — which a
+ * worker may not hand to a navigation, so the browser failed the whole
+ * navigation and the game stopped existing. Off by default because GitHub
+ * Pages does not do it, and switched on below because the next host might.
+ */
+let cleanUrls = false
 const server = http.createServer((req, res) => {
   let p = decodeURIComponent(new URL(req.url, 'http://x').pathname)
   if (!p.startsWith(BASE)) return void res.writeHead(404).end()
+  if (cleanUrls && p.endsWith('/index.html')) {
+    return void res.writeHead(301, { location: p.slice(0, -'.html'.length) }).end()
+  }
   p = p.slice(BASE.length)
   if (p === '' || p.endsWith('/')) p += 'index.html'
+  // The other half of a clean-URL host: it serves what it redirected to.
+  if (cleanUrls && p === 'index') p = 'index.html'
   const file = p === 'sw.js' ? swSource : path.join(root, serving, p)
   if (!file.startsWith(root) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
     return void res.writeHead(404).end()
@@ -159,7 +175,26 @@ check('cold start offline', started, `${cold}ms`)
 check('offline start is under §12’s three seconds', started && cold < 3000, `${cold}ms`)
 await ctx.setOffline(false)
 
-// 5. A player pinned by the worker that is deployed today is healed by the fix,
+// 5. A host that redirects index.html to a clean URL still works.
+await settle()
+cleanUrls = true
+// Tolerated, because the failure this is here to catch IS the navigation
+// failing: without the fix the reload rejects outright, and a harness that
+// dies on it reports a stack trace where it should report a red check.
+const navigated = await settle().then(() => true).catch(() => false)
+const onCleanUrls = navigated ? await running() : ''
+check('a host with clean URLs still serves the game', onCleanUrls === B, onCleanUrls || 'the navigation failed')
+await ctx.setOffline(true)
+const coldOnCleanUrls = await page
+  .reload({ waitUntil: 'domcontentloaded' })
+  .then(() => page.waitForFunction(() => !!document.querySelector('canvas'), null, { timeout: 8000 }))
+  .then(() => true)
+  .catch(() => false)
+check('and still comes up offline', coldOnCleanUrls)
+await ctx.setOffline(false)
+cleanUrls = false
+
+// 6. A player pinned by the worker that is deployed today is healed by the fix,
 //    without them having to clear anything by hand.
 const pinnedCtx = await browser.newContext(contextOptions({ viewport: { width: 900, height: 500 } }))
 const pinned = await pinnedCtx.newPage()

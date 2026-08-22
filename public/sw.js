@@ -83,7 +83,30 @@ function isShell(request, url) {
 }
 
 function cacheable(response) {
-  return response && response.ok && response.type === 'basic'
+  return response && response.ok && (response.type === 'basic' || response.type === 'default')
+}
+
+/**
+ * A response that arrived via a redirect, made safe to hand to a navigation.
+ *
+ * A worker may not answer a navigation with a redirected response — the
+ * browser rejects it and the navigation fails outright, which looks to the
+ * player like the game has stopped existing. That is not hypothetical: this
+ * worker asks for `index.html` by name, and a static host with clean URLs on
+ * (`serve`, and plenty of CDNs) answers that with a 301 to `index`. Every
+ * visit after the first died with ERR_FAILED, found while testing a restart
+ * button that reloads the page.
+ *
+ * Rebuilding it from its body clears the redirected flag and keeps the bytes,
+ * which are the bytes we asked for either way.
+ */
+async function unredirect(response) {
+  const body = await response.blob()
+  return new Response(body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: response.headers,
+  })
 }
 
 /** Resolves to null rather than throwing, so a caller can fall through. */
@@ -92,8 +115,9 @@ async function fromNetwork(cache, request, key, timeoutMs) {
   const timer = timeoutMs ? setTimeout(() => controller.abort(), timeoutMs) : 0
   try {
     const response = await fetch(request, { signal: controller.signal })
-    if (cacheable(response)) cache.put(key || request, response.clone()).catch(() => {})
-    return response
+    const usable = response.redirected ? await unredirect(response) : response
+    if (cacheable(usable)) cache.put(key || request, usable.clone()).catch(() => {})
+    return usable
   } catch {
     return null
   } finally {
