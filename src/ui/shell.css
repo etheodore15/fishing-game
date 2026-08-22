@@ -771,6 +771,50 @@ html, body {
   color: var(--paper);
 }
 
+/*
+ * Starting again.
+ *
+ * Set apart from the toggles above it by a rule, because it is not a
+ * preference: it is the one control in this game that destroys something. The
+ * warning is in the body face rather than the utility one — small caps at
+ * 0.6rem is how you make somebody agree to a thing without reading it.
+ */
+.settings .start-over {
+  border-top: 1px solid rgba(18, 24, 28, 0.18);
+  padding-top: 1rem;
+  margin-top: 1.2rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 1.4rem;
+}
+
+.settings .row-label {
+  font-family: var(--font-utility);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.settings .start-over .confirm {
+  flex: 1 1 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem 1.2rem;
+}
+
+.settings .start-over .confirm p {
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  margin: 0;
+  flex: 1 1 14rem;
+  text-align: left;
+}
+
 .settings .note {
   font-family: var(--font-body);
   font-size: 0.82rem;

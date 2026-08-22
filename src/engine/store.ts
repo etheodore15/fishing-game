@@ -94,6 +94,24 @@ export interface GameState {
   setSettings(s: Partial<Settings>): void
 }
 
+/**
+ * What the settings are before anybody touches them.
+ *
+ * Exported because starting again has to be able to get back to them, and a
+ * second copy of these five values written out in the reset would be a second
+ * answer to the question of what "default" means.
+ */
+export const DEFAULT_SETTINGS: Settings = {
+  audio: true,
+  tierOverride: null,
+  reducedMotion: false,
+  guide: 'auto',
+  lureId: 'soft-plastic',
+}
+
+/** The page that ships restored (§13.8). Page one is the tutorial. */
+export const FIRST_PAGE = 'p001'
+
 export const gameStore = createStore<GameState>()((set) => ({
   screen: 'title',
   phase: 'read',
@@ -109,19 +127,13 @@ export const gameStore = createStore<GameState>()((set) => ({
   loss: null,
   lastCatch: null,
   catchLog: [],
-  pagesRestored: ['p001'], // the tutorial page ships restored (§13.8)
+  pagesRestored: [FIRST_PAGE], // the tutorial page ships restored (§13.8)
   restoring: null,
   hasSeenRestoration: false,
   chaptersCelebrated: [],
   speciesSeen: 0,
   luresSeen: 0,
-  settings: {
-    audio: true,
-    tierOverride: null,
-    reducedMotion: false,
-    guide: 'auto',
-    lureId: 'soft-plastic',
-  },
+  settings: { ...DEFAULT_SETTINGS },
   ready: false,
 
   setScreen: (screen) => set({ screen }),

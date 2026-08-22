@@ -1,5 +1,5 @@
 import { openDB, type IDBPDatabase } from 'idb'
-import { gameStore, type CatchRecord, type Settings } from './engine/store.ts'
+import { DEFAULT_SETTINGS, FIRST_PAGE, gameStore, type CatchRecord, type Settings } from './engine/store.ts'
 
 /**
  * Save state (§10.3, §13.10).
@@ -62,6 +62,50 @@ export function migrate(raw: unknown): SaveState | null {
   return save
 }
 
+/**
+ * Starting again (§10.3, the other direction).
+ *
+ * Everything this game knows about a player lives in their browser, which
+ * meant that until now there was no way to start the chapter over, hand the
+ * phone to someone else, or undo a trip you would rather not have had. The two
+ * shapes here are the two things a player actually means by it.
+ *
+ * A pure function of the save it replaces, because *what survives a restart*
+ * is the part that is easy to get quietly wrong, and a table of it can be
+ * checked. Everything the game unlocks is derived from the catch log — the
+ * tackle box, the species pages, what the guide is willing to tell you — so
+ * emptying the log relocks all of it with no second list to remember.
+ */
+export type StartAgain = 'chapter' | 'everything'
+
+export function freshSave(mode: StartAgain, from: SaveState): SaveState {
+  const keep = mode === 'chapter'
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    chapterProgress: { 'ch1-estuary': 1 },
+    pagesRestored: [FIRST_PAGE],
+    catchLog: [],
+    chaptersCelebrated: [],
+    // Both counts go back with the things they count, or the marks that say
+    // "something new is in here" would stay off until the player re-earned
+    // more than they ever had.
+    speciesSeen: 0,
+    luresSeen: 0,
+    // Sound, guide and detail are preferences rather than progress: a player
+    // restarting the chapter has not changed their mind about the volume.
+    // What is tied on is not a preference — it is a lure they have just been
+    // relocked out of — so it goes back to the one that ships.
+    settings: keep
+      ? { ...from.settings, lureId: DEFAULT_SETTINGS.lureId }
+      : { ...DEFAULT_SETTINGS },
+    // §5.4 keeps the first restoration un-skippable. Having seen it once is a
+    // fact about the person, not about the journal, so it survives a chapter
+    // restart and not a wipe.
+    hasSeenRestoration: keep ? Boolean(from.hasSeenRestoration) : false,
+    lastPlayed: Date.now(),
+  }
+}
+
 let dbPromise: Promise<IDBPDatabase> | null = null
 
 function db(): Promise<IDBPDatabase> {
@@ -102,11 +146,39 @@ export function snapshot(): SaveState {
 }
 
 export async function save(): Promise<void> {
+  if (suspended) return
   try {
     await (await db()).put(STORE, snapshot(), KEY)
   } catch (err) {
     console.warn('[slack-water] could not write the save', err)
   }
+}
+
+/**
+ * Once a restart is written, nothing else may write.
+ *
+ * The autosave watches the store, and the store is still holding the trip the
+ * player is walking away from. Between writing the fresh save and the game
+ * coming back up, one stray write would put the whole journal back.
+ */
+let suspended = false
+
+/**
+ * Write the fresh save. The caller brings the game back up on it.
+ *
+ * Deliberately a reload rather than reaching into every subsystem to put it
+ * back: the water, the tide, the clock, the fish, the trip and the overlay all
+ * hold live state, and the one code path that is known to build all of them
+ * correctly from a save is the one that runs every time the game is opened.
+ */
+export async function startAgain(mode: StartAgain): Promise<void> {
+  const next = freshSave(mode, snapshot())
+  try {
+    await (await db()).put(STORE, next, KEY)
+  } catch (err) {
+    console.warn('[slack-water] could not write the restart', err)
+  }
+  suspended = true
 }
 
 export function applySave(s: SaveState): void {
