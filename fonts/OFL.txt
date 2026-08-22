@@ -1,0 +1,13 @@
+The three typefaces bundled here are licensed under the SIL Open Font License,
+Version 1.1, which permits bundling and redistribution with the game.
+
+  Chivo       — Omnibus-Type.        Copyright (c) The Chivo Project Authors.
+  Newsreader  — Production Type.     Copyright (c) The Newsreader Project Authors.
+  Space Mono  — Colophon Foundry.    Copyright (c) The Space Mono Project Authors.
+
+Full licence text: https://openfontlicense.org/open-font-license-official-text/
+
+Each file is the latin subset only. §5.2 of the design spec requires the fonts
+to be self-hosted so the game works offline with no CDN and no runtime call to
+Google Fonts; §11 requires a cold start under three seconds, so the larger
+subsets are deliberately not shipped.
