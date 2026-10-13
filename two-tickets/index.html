@@ -1,0 +1,742 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Two Tickets</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a single column "travel folder" — two luggage tags (one per partner), then the merged itinerary below an airmail-striped divider. */
+:root{
+  --paper:#F1F3F7; --card:#FFFFFF; --ink:#16213A; --muted:#5A6580; --line:#D6DBE5;
+  --red:#C3364B; --blue:#1F5DA6; --good:#25785A; --warn:#A86C12; --soft:#E7ECF5;
+  --f-display:"Young Serif",Georgia,"Times New Roman",serif;
+  --f-body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#0D1322; --card:#151D31; --ink:#E7EBF4; --muted:#9AA4BD; --line:#29344D;
+  --red:#EF6B7E; --blue:#72A6EA; --good:#5BC598; --warn:#E2B15C; --soft:#1C2640; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#0D1322; --card:#151D31; --ink:#E7EBF4; --muted:#9AA4BD; --line:#29344D;
+  --red:#EF6B7E; --blue:#72A6EA; --good:#5BC598; --warn:#E2B15C; --soft:#1C2640; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55}
+.wrap{max-width:980px;margin:0 auto;padding-inline:16px;padding-block:20px 64px}
+h1,h2,h3{font-family:var(--f-display);font-weight:400;text-wrap:balance;margin:0;line-height:1.15}
+h1{font-size:clamp(30px,6vw,46px)}
+h2{font-size:clamp(22px,3.6vw,28px)}
+h3{font-size:19px}
+p{margin:0}
+.muted{color:var(--muted)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.label{font-size:11.5px;text-transform:uppercase;letter-spacing:.09em;font-weight:600;color:var(--muted)}
+.stack{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.airmail{height:8px;border-radius:2px;background:repeating-linear-gradient(-45deg,var(--red) 0 14px,var(--card) 14px 22px,var(--blue) 22px 36px,var(--card) 36px 44px)}
+
+header.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:22px}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-size:22px;cursor:pointer;background:none;border:0;color:var(--ink);padding:0}
+.brand svg{flex:none}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:3px 10px;border-radius:99px;border:1px solid var(--line);background:var(--card);white-space:nowrap}
+.pill.good{color:var(--good);border-color:color-mix(in srgb,var(--good) 40%,transparent)}
+.pill.warn{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,transparent)}
+.pill.red{color:var(--red);border-color:color-mix(in srgb,var(--red) 40%,transparent)}
+.pill.blue{color:var(--blue);border-color:color-mix(in srgb,var(--blue) 40%,transparent)}
+
+button,.btn{font:inherit;font-weight:600;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:9px 16px;cursor:pointer}
+button.primary{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+button.ghost{background:transparent}
+button.small{padding:5px 10px;font-size:13px}
+button:hover{border-color:var(--muted)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+button[disabled]{opacity:.5;cursor:not-allowed}
+
+input,select,textarea{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+input[type=range]{padding:0;accent-color:var(--blue);background:transparent;border:0}
+input[type=checkbox]{width:auto;accent-color:var(--red)}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+.hero{display:grid;grid-template-columns:1.25fr 1fr;gap:28px;align-items:center;margin-bottom:28px}
+.hero > *{min-width:0}
+.hero p.lede{font-size:17px;margin-top:12px;max-width:52ch}
+.how{display:grid;gap:10px;counter-reset:s}
+.how li{list-style:none;display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start}
+.how li::before{counter-increment:s;content:counter(s);font-family:var(--f-mono);font-size:12px;width:24px;height:24px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;background:var(--card)}
+.how{padding:0;margin:0}
+
+/* luggage tags */
+.tags{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.tag{position:relative;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:20px 18px 18px 18px;overflow:hidden;min-width:0}
+.tag::before{content:"";position:absolute;inset:0 0 auto 0;height:6px;background:repeating-linear-gradient(-45deg,var(--red) 0 10px,var(--card) 10px 16px,var(--blue) 16px 26px,var(--card) 26px 32px)}
+.tag .hole{position:absolute;right:16px;top:18px;width:14px;height:14px;border-radius:50%;border:2px solid var(--line);background:var(--paper)}
+.tag .seat{font-family:var(--f-mono);font-size:30px;font-weight:600;letter-spacing:.04em}
+.tag.sealed .seat{color:var(--good)}
+
+/* form */
+.form{display:grid;gap:22px}
+.field{display:grid;gap:6px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.place-row{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center}
+.want{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.want button{border:0;border-radius:0;padding:7px 10px;font-size:13px;background:var(--paper);font-weight:500}
+.want button[aria-pressed="true"]{background:var(--blue);color:var(--card)}
+.slider{display:grid;grid-template-columns:minmax(80px,1fr) minmax(120px,2fr) minmax(80px,1fr);gap:10px;align-items:center;font-size:13px}
+.slider span:last-child{text-align:right}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:99px;padding:5px 12px;font-size:13.5px;cursor:pointer;background:var(--paper);user-select:none}
+.chip:has(input:checked){border-color:var(--red);background:color-mix(in srgb,var(--red) 10%,var(--card))}
+.chip input{margin:0}
+.hint{font-size:13px;color:var(--muted)}
+
+/* results */
+.section{display:grid;gap:14px;margin-top:34px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.kpi .v{font-family:var(--f-mono);font-size:24px;font-weight:600;margin-top:4px;font-variant-numeric:tabular-nums}
+.kpi .s{font-size:12.5px;color:var(--muted)}
+.dest-list{display:grid;gap:10px}
+.dest{display:grid;grid-template-columns:54px minmax(0,1fr) auto;gap:14px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.code{font-family:var(--f-mono);font-weight:600;font-size:15px;border:1.5px dashed var(--line);border-radius:6px;text-align:center;padding:8px 0;letter-spacing:.06em}
+.dest .meta{font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:3px}
+.dest .right{display:grid;justify-items:end;gap:6px;text-align:right}
+.score{font-family:var(--f-mono);font-size:13px;color:var(--muted)}
+.months{display:inline-grid;grid-template-columns:repeat(12,7px);gap:2px;vertical-align:middle}
+.months i{height:9px;border-radius:1px;background:var(--line)}
+.months i.on{background:var(--blue)}
+.timeline{position:relative;display:grid;gap:0}
+.tl-year{display:grid;grid-template-columns:70px 1fr;gap:14px;padding-block:12px;border-top:1px solid var(--line)}
+.tl-year:first-child{border-top:0}
+.tl-year .yr{font-family:var(--f-mono);font-weight:600;font-size:18px}
+.tl-trips{display:grid;gap:8px}
+.tl-trip{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.tl-trip .when{font-family:var(--f-mono);font-size:13px;color:var(--muted);min-width:64px}
+.blend{display:grid;gap:14px}
+.axis{display:grid;grid-template-columns:110px minmax(0,1fr) 110px;gap:12px;align-items:center;font-size:13px}
+.axis span:last-child{text-align:right}
+.track{position:relative;height:22px}
+.track::before{content:"";position:absolute;left:0;right:0;top:10px;height:2px;background:var(--line)}
+.track .range{position:absolute;top:7px;height:8px;border-radius:4px;background:color-mix(in srgb,var(--blue) 30%,transparent)}
+.track .mid{position:absolute;top:3px;width:16px;height:16px;margin-left:-8px;border-radius:50%;background:var(--blue);border:3px solid var(--card)}
+.tip{font-size:13.5px;border-left:3px solid var(--warn);padding-left:10px}
+.insights{display:grid;gap:10px;padding:0;margin:0;list-style:none}
+.insights li{display:grid;grid-template-columns:26px 1fr;gap:10px;align-items:start;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.insights .ic{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--card)}
+.ic.good{background:var(--good)} .ic.warn{background:var(--warn)} .ic.blue{background:var(--blue)} .ic.red{background:var(--red)}
+.banner{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:var(--soft);border:1px dashed var(--line);border-radius:var(--r);padding:12px 14px;font-size:14px}
+details summary{cursor:pointer;font-weight:600}
+.claude-out{white-space:pre-wrap;font-size:14.5px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:8px;font-size:14px;z-index:9;max-width:calc(100% - 32px)}
+.handoff{text-align:center;padding:40px 20px;display:grid;gap:14px;justify-items:center}
+.codebox{font-family:var(--f-mono);font-size:26px;letter-spacing:.2em;font-weight:600}
+
+@media (max-width:720px){
+  .hero,.tags,.grid2{grid-template-columns:1fr}
+  .grid3{grid-template-columns:1fr 1fr}
+  .kpis{grid-template-columns:1fr 1fr}
+  .dest{grid-template-columns:44px minmax(0,1fr)}
+  .dest .right{grid-column:1/-1;justify-items:start;text-align:left;grid-auto-flow:column;justify-content:start;align-items:center}
+  .axis{grid-template-columns:76px minmax(0,1fr) 76px;font-size:12px}
+  .slider{grid-template-columns:1fr 1fr;}
+  .slider input{grid-column:1/-1;grid-row:2}
+  .tl-year{grid-template-columns:1fr}
+  .tl-trip{grid-template-columns:minmax(0,1fr) auto}
+  .tl-trip .when{grid-column:1/-1}
+}
+@media (prefers-reduced-motion:no-preference){.dest,.tl-trip{transition:border-color .15s}.dest:hover{border-color:var(--muted)}}
+</style>
+
+<div class="wrap" id="app"></div>
+<div class="toast" id="toast" hidden></div>
+
+<datalist id="dest-list"></datalist>
+<datalist id="hub-list"></datalist>
+
+<script>
+"use strict";
+/* ----------------------------------------------------------------------------
+   Reference data. Costs are mid-range USD per person per day (bed, food,
+   local transport, a paid activity) before the comfort adjustment.
+   Fields: name | IATA | lat | lon | $/day | best months | tags | min days
+---------------------------------------------------------------------------- */
+const DEST_RAW = `Japan|TYO|35.7|139.7|170|3-5,10-11|city,food,culture,history,art,snow,busy|10
+Kyoto|KIX|35.0|135.8|160|3-5,10-11|culture,history,food,art,busy|5
+South Korea|SEL|37.6|127.0|130|4-6,9-11|city,food,culture,nightlife|8
+Taiwan|TPE|25.0|121.5|110|10-12,3-4|food,city,hiking,culture|7
+Vietnam|HAN|21.0|105.8|70|2-4,10-11|food,beach,culture,hiking,rough|12
+Thailand|BKK|13.8|100.5|75|11-3|beach,food,nightlife,wellness,hot,busy|10
+Bali|DPS|-8.7|115.2|90|5-9|beach,wellness,surf,culture,busy|8
+Cambodia|PNH|11.6|104.9|60|11-3|history,culture,hot,rough|7
+Sri Lanka|CMB|6.9|79.9|80|12-4|beach,wildlife,culture,hiking|10
+India|DEL|28.6|77.2|70|10-3|history,culture,food,hot,rough,busy|12
+Nepal|KTM|27.7|85.3|60|3-5,10-11|hiking,culture,rough,cold|14
+Maldives|MLE|4.2|73.5|420|11-4|beach,wellness,diving,hot|6
+Singapore|SIN|1.35|103.8|190|2-4|city,food,hot|4
+Hong Kong|HKG|22.3|114.2|190|10-12|city,food,nightlife,hiking|4
+Dubai|DXB|25.2|55.3|240|11-3|city,luxury,hot|4
+Jordan|AMM|31.9|35.9|130|3-5,9-11|history,hiking,culture,hot|7
+Turkey|IST|41.0|29.0|110|4-6,9-10|history,food,culture,city|10
+Egypt|CAI|30.0|31.2|90|10-3|history,culture,diving,hot,busy|9
+Morocco|RAK|31.6|-8.0|95|3-5,9-11|culture,food,hiking,art|9
+Kenya|NBO|-1.3|36.8|260|7-10,1-2|wildlife,adventure|8
+Tanzania|JRO|-3.4|37.1|300|6-10,1-2|wildlife,hiking,beach,adventure|10
+South Africa|CPT|-33.9|18.4|120|11-3|wildlife,food,beach,hiking,road trips|12
+Namibia|WDH|-22.6|17.1|150|5-10|wildlife,road trips,adventure,rough|12
+Iceland|KEF|64.1|-21.9|230|6-9|nature,hiking,road trips,cold,adventure|8
+Norway|OSL|59.9|10.7|220|6-8|nature,hiking,road trips,cold|9
+Finnish Lapland|RVN|66.5|25.7|220|12-3|snow,nature,wildlife,cold|6
+Scotland|EDI|55.9|-3.2|160|5-9|nature,hiking,history,road trips|8
+Ireland|DUB|53.3|-6.3|150|5-9|nature,road trips,history,food|8
+London|LON|51.5|-0.1|210|5-9|city,art,history,nightlife,busy|5
+Paris|PAR|48.9|2.35|200|4-6,9-10|city,art,food,history,busy|5
+Amsterdam|AMS|52.4|4.9|180|4-9|city,art,nightlife|4
+Berlin|BER|52.5|13.4|140|5-9|city,art,nightlife,history|4
+Prague|PRG|50.1|14.4|110|4-6,9-10|city,history,nightlife|4
+Vienna|VIE|48.2|16.4|150|4-6,9-10,12|city,art,history,food|4
+Switzerland|ZRH|47.4|8.5|260|6-9,12-3|nature,hiking,snow,luxury|8
+Italy|ROM|41.9|12.5|170|4-6,9-10|food,history,art,culture,beach,busy|12
+Amalfi Coast|NAP|40.6|14.6|230|5-6,9|beach,food,luxury,busy|5
+Spain|MAD|40.4|-3.7|140|4-6,9-10|food,city,beach,art,nightlife|11
+Portugal|LIS|38.7|-9.1|125|4-6,9-10|food,beach,surf,city,history|9
+France (Provence)|MRS|43.3|5.4|170|5-6,9|food,wellness,road trips,art|7
+Greece|ATH|37.9|23.7|140|5-6,9-10|beach,history,food,busy|10
+Croatia|DBV|42.6|18.1|140|5-6,9|beach,history,sailing,busy|9
+New York|NYC|40.7|-74.0|280|4-6,9-12|city,art,food,nightlife,busy|6
+California|SFO|37.8|-122.4|230|4-10|road trips,food,nature,city,beach|12
+Hawaii|HNL|21.3|-157.9|260|4-10|beach,surf,hiking,wellness|8
+US National Parks|LAS|36.2|-115.1|190|4-6,9-10|nature,hiking,road trips,adventure|12
+Canadian Rockies|YYC|51.0|-114.1|200|6-9|nature,hiking,road trips,wildlife,cold|9
+Mexico City|MEX|19.4|-99.1|100|10-5|food,art,history,city|5
+Yucatán|CUN|21.2|-86.8|130|11-4|beach,history,diving,hot,busy|8
+Costa Rica|SJO|9.9|-84.1|140|12-4|wildlife,nature,surf,adventure,wellness|10
+Cuba|HAV|23.1|-82.4|90|11-4|history,culture,nightlife,rough,hot|9
+Peru|LIM|-12.0|-77.0|110|5-9|hiking,history,food,adventure,rough|12
+Patagonia|FTE|-50.3|-72.3|170|11-3|hiking,nature,adventure,cold,rough|12
+Buenos Aires|EZE|-34.6|-58.4|100|3-5,9-11|city,food,nightlife,art|5
+Brazil|RIO|-22.9|-43.2|110|4-10|beach,nightlife,nature,food|10
+Galápagos|GPS|-0.7|-90.3|380|12-5|wildlife,diving,adventure|7
+Colombia|BOG|4.7|-74.1|85|12-3,7-8|food,culture,hiking,nightlife|10
+New Zealand|AKL|-36.8|174.8|180|12-4|nature,hiking,road trips,adventure|14
+Tasmania|HBA|-42.9|147.3|160|12-3|nature,hiking,food,road trips|7
+Fiji|NAN|-17.8|177.4|200|5-10|beach,diving,wellness|7
+Uluru & the Red Centre|AYQ|-25.3|131.0|230|5-9|nature,culture,hiking,hot|4
+Great Barrier Reef|CNS|-16.9|145.8|190|6-10|diving,beach,nature|6
+Antarctica|USH|-54.8|-68.3|1200|11-2|wildlife,adventure,cold,luxury|12`;
+
+const HUBS_RAW = `Sydney|-33.9|151.2
+Melbourne|-37.8|145.0
+Brisbane|-27.5|153.0
+Perth|-31.95|115.9
+Auckland|-36.8|174.8
+Singapore|1.35|103.8
+Hong Kong|22.3|114.2
+Tokyo|35.7|139.7
+Seoul|37.6|127.0
+Shanghai|31.2|121.5
+Bangkok|13.8|100.5
+Mumbai|19.1|72.9
+Delhi|28.6|77.2
+Dubai|25.2|55.3
+Johannesburg|-26.2|28.0
+London|51.5|-0.1
+Dublin|53.3|-6.3
+Paris|48.9|2.35
+Amsterdam|52.4|4.9
+Berlin|52.5|13.4
+Madrid|40.4|-3.7
+Rome|41.9|12.5
+Stockholm|59.3|18.1
+New York|40.7|-74.0
+Boston|42.4|-71.1
+Chicago|41.9|-87.6
+Toronto|43.7|-79.4
+Vancouver|49.3|-123.1
+Los Angeles|34.05|-118.2
+San Francisco|37.8|-122.4
+Seattle|47.6|-122.3
+Miami|25.8|-80.2
+Mexico City|19.4|-99.1
+São Paulo|-23.5|-46.6
+Buenos Aires|-34.6|-58.4`;
+
+function parseMonths(s){const out=new Set();for(const part of s.split(",")){const [a,b]=part.split("-").map(Number);if(!b){out.add(a);continue}let m=a;for(let i=0;i<12;i++){out.add(m);if(m===b)break;m=m%12+1}}return [...out]}
+const DESTS = DEST_RAW.trim().split("\n").map(l=>{const [name,code,lat,lon,cost,months,tags,minDays]=l.split("|");return {name,code,lat:+lat,lon:+lon,cost:+cost,months:parseMonths(months),tags:tags.split(","),minDays:+minDays}});
+const HUBS = HUBS_RAW.trim().split("\n").map(l=>{const [name,lat,lon]=l.split("|");return {name,lat:+lat,lon:+lon}});
+const norm=s=>String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim();
+const ALIASES={"tokyo":"Japan","osaka":"Kyoto","korea":"South Korea","seoul":"South Korea","hanoi":"Vietnam","ho chi minh":"Vietnam","bangkok":"Thailand","phuket":"Thailand","chiang mai":"Thailand","angkor wat":"Cambodia","siem reap":"Cambodia","rajasthan":"India","everest":"Nepal","petra":"Jordan","istanbul":"Turkey","cappadocia":"Turkey","cairo":"Egypt","marrakech":"Morocco","serengeti":"Tanzania","zanzibar":"Tanzania","kilimanjaro":"Tanzania","safari":"Kenya","cape town":"South Africa","lapland":"Finnish Lapland","northern lights":"Finnish Lapland","fjords":"Norway","rome":"Italy","tuscany":"Italy","venice":"Italy","florence":"Italy","positano":"Amalfi Coast","barcelona":"Spain","lisbon":"Portugal","provence":"France (Provence)","santorini":"Greece","greek islands":"Greece","dubrovnik":"Croatia","nyc":"New York","san francisco":"California","los angeles":"California","maui":"Hawaii","yosemite":"US National Parks","grand canyon":"US National Parks","banff":"Canadian Rockies","cancun":"Yucatán","tulum":"Yucatán","machu picchu":"Peru","rio":"Brazil","rio de janeiro":"Brazil","galapagos":"Galápagos","cartagena":"Colombia","nz":"New Zealand","uluru":"Uluru & the Red Centre","great barrier reef":"Great Barrier Reef","cairns":"Great Barrier Reef","swiss alps":"Switzerland","edinburgh":"Scotland","highlands":"Scotland"};
+function findDest(q){const n=norm(q);if(!n)return null;let d=DESTS.find(x=>norm(x.name)===n||norm(x.code)===n);if(d)return d;if(ALIASES[n])return DESTS.find(x=>x.name===ALIASES[n]);d=DESTS.find(x=>norm(x.name).startsWith(n)&&n.length>=4);return d||null}
+function findHub(q){const n=norm(q);return HUBS.find(h=>norm(h.name)===n)||HUBS.find(h=>norm(h.name).startsWith(n)&&n.length>=3)||null}
+function km(a,b){const R=6371,r=Math.PI/180,dLat=(b.lat-a.lat)*r,dLon=(b.lon-a.lon)*r;const h=Math.sin(dLat/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dLon/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
+
+const INTERESTS=["beach","food","history","art","hiking","wildlife","snow","nightlife","road trips","wellness","diving","city"];
+const AVOIDS=[["hot","Heat"],["cold","Cold"],["busy","Crowds"],["rough","Rough travel"]];
+const AXES=[
+  ["pace","Slow mornings","Packed days","Plan anchor days and free days: one fixed highlight per day, everything else optional."],
+  ["comfort","Simple stays","Treat ourselves","Spend on the beds that matter. Splurge on two or three nights and keep the rest simple."],
+  ["activity","Lounge","Adventure","Alternate big days with recovery days, or let one of you go on a solo half-day excursion."],
+  ["setting","Wild places","Cities","Pick trips that combine both, like a city start and a nature finish, or alternate trips."],
+  ["planning","Wing it","Every detail","Book the bones (flights, first and last night, one key ticket) and leave the middle open."],
+  ["social","Just us two","Meet people","Add one group activity per trip: a cooking class, a guided hike, a shared table."]
+];
+const MONTH=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const WANT=["","Curious","Want","Must"];
+
+/* ----------------------------------------------------------------------------
+   The merge. Takes two sealed answer sets and returns one shared plan. Nothing
+   in the output says which partner asked for what: places are "both of you" or
+   "one of you", and parked ideas carry a reason, never a name.
+---------------------------------------------------------------------------- */
+function emptyAnswers(){return {name:"",places:[{name:"",want:2},{name:"",want:2},{name:"",want:2}],style:{pace:3,comfort:3,activity:3,setting:3,planning:3,social:3},interests:[],avoid:[],budget:6000,savings:400,days:20,maxFlight:20,horizon:4}}
+
+function marry(A,B,homeName,now=new Date()){
+  const home=findHub(homeName)||HUBS[0];
+  const style={},gaps={};
+  for(const [k] of AXES){const a=+A.style[k],b=+B.style[k];style[k]=(a+b)/2;gaps[k]={lo:Math.min(a,b),hi:Math.max(a,b),gap:Math.abs(a-b)}}
+  const comfortMult=0.6+(style.comfort-1)*0.3; // 1 → 0.6×, 3 → 1.2×, 5 → 1.8×
+  const ceiling=Math.min(+A.budget,+B.budget), stretch=Math.max(+A.budget,+B.budget);
+  const monthly=(+A.savings||0)+(+B.savings||0);
+  const days=Math.min(+A.days,+B.days);
+  const maxFlight=Math.min(+A.maxFlight,+B.maxFlight);
+  const horizon=Math.max(1,Math.round(((+A.horizon)+(+B.horizon))/2));
+  const avoid=new Set([...A.avoid,...B.avoid]);
+  const sharedInterests=A.interests.filter(i=>B.interests.includes(i));
+  const anyInterests=new Set([...A.interests,...B.interests]);
+
+  const pool=new Map();
+  const add=(p,side)=>{const nm=String(p.name||"").trim();if(!nm)return;const d=findDest(nm);const key=d?d.name:norm(nm);if(!key)return;
+    const e=pool.get(key)||{key,dest:d,label:d?d.name:nm,want:{A:0,B:0}};e.want[side]=Math.max(e.want[side],+p.want||1);pool.set(key,e)};
+  A.places.forEach(p=>add(p,"A"));B.places.forEach(p=>add(p,"B"));
+
+  const items=[],parked=[],unknown=[];
+  for(const e of pool.values()){
+    const both=e.want.A>0&&e.want.B>0;
+    if(!e.dest){unknown.push({label:e.label,both});continue}
+    const d=e.dest, dist=km(home,d), hours=dist<150?0:dist/780+1.2;
+    const flightPP=dist<150?0:Math.round((90+dist*0.075)/10)*10;
+    const tripDays=Math.min(Math.max(d.minDays,hours>12?d.minDays+2:d.minDays),Math.max(days,1));
+    const stay=Math.round(d.cost*comfortMult*tripDays*2);
+    const cost=flightPP*2+stay;
+    let months=d.months.slice();
+    if(avoid.has("busy")&&d.tags.includes("busy")&&months.length>2){months=[months[0],months[months.length-1]]}
+    const reasons=[];
+    if(hours>maxFlight+0.5)reasons.push(`about ${Math.round(hours)}h of flying, past what you'd both sit through`);
+    if(avoid.has("hot")&&d.tags.includes("hot"))reasons.push("hot for most of its season");
+    if(avoid.has("cold")&&d.tags.includes("cold"))reasons.push("cold for most of its season");
+    if(avoid.has("rough")&&d.tags.includes("rough"))reasons.push("travel there is rough going");
+    if(d.minDays>days)reasons.push(`needs ${d.minDays} days, more leave than you share`);
+    const tagHits=d.tags.filter(t=>sharedInterests.includes(t)).length*1+d.tags.filter(t=>anyInterests.has(t)&&!sharedInterests.includes(t)).length*0.4;
+    let raw=e.want.A+e.want.B+(both?2.5:0)+Math.min(tagHits,3);
+    if(gaps.setting.hi<=2&&d.tags.includes("city")&&!d.tags.includes("nature"))raw-=1;
+    if(gaps.setting.lo>=4&&d.tags.includes("nature")&&!d.tags.includes("city"))raw-=1;
+    const score=Math.max(5,Math.min(99,Math.round(raw/11.5*100)));
+    const item={key:e.key,label:d.name,code:d.code,dest:d,both,side:both?null:(e.want.A?"A":"B"),wantSum:e.want.A+e.want.B,
+      score,hours,flightPP,tripDays,stay,cost,months,reasons};
+    item.fit=cost<=ceiling?"fits":cost<=stretch?"stretch":"save";
+    item.monthsToSave=monthly>0?Math.ceil(cost/monthly):Infinity;
+    (reasons.length?parked:items).push(item);
+  }
+  items.sort((x,y)=>y.score-x.score||x.cost-y.cost);
+
+  // Roadmap: shared dreams first by score, then each person's own picks taken in
+  // turn so neither side gets two gifts in a row. Each trip goes in the first
+  // good month after the last one where the fund and that year's leave cover it.
+  const gifts={A:items.filter(i=>i.side==="A"),B:items.filter(i=>i.side==="B")};
+  const order=items.filter(i=>i.both);
+  let turn=(gifts.A[0]?.score||0)>=(gifts.B[0]?.score||0)?"A":"B";
+  while(gifts.A.length||gifts.B.length){const q=gifts[turn].length?gifts[turn]:gifts[turn==="A"?"B":"A"];order.push(q.shift());turn=turn==="A"?"B":"A"}
+  const start=new Date(now.getFullYear(),now.getMonth()+1,1);
+  const total=horizon*12, monthAt=i=>new Date(start.getFullYear(),start.getMonth()+i,1);
+  const leaveUsed={};let cursor=0,fundAt0=0,lastTrip=-3;
+  const plan=[],unscheduled=[];
+  for(const it of order){
+    const need=Math.ceil(it.tripDays*5/7);let placed=false;
+    for(let i=Math.max(cursor,lastTrip+3);i<total;i++){
+      const dt=monthAt(i),y=dt.getFullYear();
+      const fund=fundAt0+monthly*(i-cursor+1);
+      if(!it.months.includes(dt.getMonth()+1)||fund<it.cost||(leaveUsed[y]||0)+need>days)continue;
+      plan.push({...it,date:dt});leaveUsed[y]=(leaveUsed[y]||0)+need;
+      fundAt0=fund-it.cost;cursor=i+1;lastTrip=i;placed=true;break;
+    }
+    if(!placed)unscheduled.push(it);
+  }
+
+
+  // Compatibility: how close the two style profiles sit, 0–100.
+  const totalGap=AXES.reduce((s,[k])=>s+gaps[k].gap,0);
+  const compat=Math.round(100-totalGap/(AXES.length*4)*100);
+  const sharedCount=items.filter(i=>i.both).length+parked.filter(i=>i.both).length;
+  return {home,style,gaps,comfortMult,ceiling,stretch,monthly,days,maxFlight,horizon,avoid:[...avoid],sharedInterests,items,parked,unknown,plan,unscheduled,compat,sharedCount,names:[A.name||"Partner A",B.name||"Partner B"]};
+}
+
+function insightsFor(r){
+  const out=[],money=v=>"$"+Math.round(v).toLocaleString("en-US");
+  if(r.plan.length){
+    const perYear=r.plan.length/r.horizon;
+    out.push(["good","✓",`At ${money(r.monthly)} a month together, this plan fits <b>${r.plan.length} trip${r.plan.length>1?"s":""}</b> into ${r.horizon} year${r.horizon>1?"s":""}, about ${perYear.toFixed(1)} a year. Set up one automatic transfer on payday so the fund grows without anyone having to remember.`]);
+  }else{
+    out.push(["red","!",`Nothing on your list fits the plan yet. Either the savings rate is too low for these trips or the shortlist is all parked. Try adding nearer places, or raise the monthly amount.`]);
+  }
+  const topShared=r.items.find(i=>i.both);
+  if(topShared){
+    const sched=r.plan.find(p=>p.key===topShared.key);
+    if(sched)out.push(["blue","★",`Your strongest shared dream is <b>${topShared.label}</b>, planned for ${MONTH[sched.date.getMonth()]} ${sched.date.getFullYear()} at roughly ${money(topShared.cost)} for two. Book flights 4–7 months before to hold that number.`]);
+    else{
+      const need=topShared.cost, months=r.monthly?Math.ceil(need/r.monthly):Infinity;
+      out.push(["warn","★",`<b>${topShared.label}</b> is the dream you share most, but at ~${money(need)} it ${Number.isFinite(months)?`needs ${months} months of saving`:"needs a savings plan"}. To get there within a year you'd need ${money(need/12)} a month just for this trip.`]);
+    }
+  }else{
+    out.push(["warn","?","None of your places overlap yet. That's common. The plan alternates each person's picks so both of you get a turn; try adding a few places you'd each happily say yes to."]);
+  }
+  if(r.stretch>r.ceiling){
+    out.push(["blue","$",`Your comfort zones per trip differ: the shared ceiling is ${money(r.ceiling)}, and one of you would go up to ${money(r.stretch)}. The plan treats anything in between as a "stretch" trip worth talking about before booking.`]);
+  }
+  const bigGaps=AXES.filter(([k])=>r.gaps[k].gap>=2).sort((x,y)=>r.gaps[y[0]].gap-r.gaps[x[0]].gap).slice(0,2);
+  if(bigGaps.length){
+    out.push(["warn","~",`You travel most differently on <b>${bigGaps.map(a=>`${a[1].toLowerCase()} vs ${a[2].toLowerCase()}`).join("</b> and <b>")}</b>. Settle these trip by trip rather than once; the tips under "How you travel, together" give a starting point.`]);
+  }else{
+    out.push(["good","✓",`Your travel styles sit close together on every axis. Most couples disagree on at least one, so the planning conversations should be short.`]);
+  }
+  if(r.parked.length){
+    const n=r.parked.length;
+    out.push(["blue","⏸",`${n} idea${n>1?"s are":" is"} parked because of a shared limit (flight time, climate, leave). They aren't gone: they come back if you change those limits, or as a once-in-a-decade trip.`]);
+  }
+  if(r.unscheduled.length&&r.plan.length){
+    const u=r.unscheduled[0];
+    out.push(["blue","→",`<b>${u.label}</b> didn't fit inside ${r.horizon} years at this rate. Adding ${money(Math.max(50,u.cost/(r.horizon*12)))} a month would cover it.`]);
+  }
+  if(r.days<15){
+    out.push(["warn","◷",`You share ${r.days} days of leave a year, which limits long-haul trips. Public holidays next to weekends stretch it further; long weekends near home keep the rhythm going between big trips.`]);
+  }
+  if(r.sharedInterests.length){
+    out.push(["good","♥",`You both said yes to <b>${r.sharedInterests.join(", ")}</b>. Places strong on ${r.sharedInterests.length>1?"those":"that"} rank higher.`]);
+  }
+  return out;
+}
+
+/* ----------------------------------------------------------------------------
+   Storage. With the shared-data capability, each partner fills their side on
+   their own device under a plan code. Without it, the plan lives on this
+   device and partners take turns.
+---------------------------------------------------------------------------- */
+const LS={get(k,d){try{const v=localStorage.getItem("tt:"+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem("tt:"+k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem("tt:"+k)}catch(e){}}};
+let db=null,me=null;
+const state={view:"home",mode:null,code:null,seat:null,plan:{home:"Sydney",A:null,B:null},draft:null,editing:null,claude:{busy:false,text:"",err:""},unsub:[]};
+
+function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>t.hidden=true,2600)}
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function money(v){return "$"+Math.round(v).toLocaleString("en-US")}
+function genCode(){const a="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let s="";for(let i=0;i<6;i++)s+=a[Math.floor(Math.random()*a.length)];return s}
+
+function stopSubs(){state.unsub.forEach(u=>{try{u()}catch(e){}});state.unsub=[]}
+function subscribePlan(){
+  stopSubs();
+  if(state.mode!=="shared"||!db)return;
+  const base="couples/"+state.code;
+  state.unsub.push(db.doc(base).onSnapshot(s=>{const d=s.data();if(d&&d.home){state.plan.home=d.home;render()}},()=>{}));
+  for(const seat of ["A","B"]){
+    state.unsub.push(db.doc(base+"/seats/"+seat).onSnapshot(s=>{state.plan[seat]=s.exists?s.data():null;render()},err=>{toast("Couldn't reach the shared plan: "+(err&&err.message||"try again"))}));
+  }
+}
+async function saveSeat(seat,payload){
+  if(state.mode==="shared"){
+    if(!db){toast("Shared storage isn't available here.");return false}
+    try{await db.doc("couples/"+state.code+"/seats/"+seat).set(payload);return true}
+    catch(e){toast(e&&e.code==="not_granted"?"You need edit access to this page to fill in a side. Ask the owner to share it with you as a Contributor.":"Couldn't save: "+(e&&e.message||"try again"));return false}
+  }
+  state.plan[seat]=payload;LS.set("local",state.plan);return true;
+}
+async function saveHome(h){
+  state.plan.home=h;
+  if(state.mode==="shared"&&db){try{await db.doc("couples/"+state.code).set({home:h,updatedAt:Date.now()})}catch(e){}}
+  else LS.set("local",state.plan);
+}
+
+/* ----------------------------------------------------------------------------
+   Views
+---------------------------------------------------------------------------- */
+const LOGO=`<svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><rect x="2" y="7" width="19" height="13" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8" transform="rotate(-8 11 13)"/><rect x="9" y="10" width="19" height="13" rx="2.5" fill="var(--card)" stroke="var(--red)" stroke-width="1.8" transform="rotate(6 18 16)"/><circle cx="24" cy="14" r="1.6" fill="var(--red)"/></svg>`;
+
+function header(){
+  let right="";
+  if(state.view!=="home"){
+    right=state.mode==="shared"?`<span class="pill blue">Plan <span class="mono">${esc(state.code)}</span>${state.seat?` · you're ${state.seat==="A"?"tag A":"tag B"}`:""}</span>`:`<span class="pill">On this device</span>`;
+  }
+  return `<header class="top"><button class="brand" data-act="home" aria-label="Two Tickets home">${LOGO}Two Tickets</button><div class="row">${right}</div></header>`;
+}
+
+function viewHome(){
+  const resume=LS.get("last",null);
+  const sample=marry(SAMPLE.A,SAMPLE.B,"Sydney");
+  return `${header()}
+  <section class="hero">
+    <div>
+      <div class="label">For two people, one list</div>
+      <h1>Each of you writes down where you want to go. We merge it into one plan you can afford.</h1>
+      <p class="lede muted">Your answers stay sealed. Neither of you sees the other's list, budget or dealbreakers. You only see the joined result: what you share, what fits, and when you can go.</p>
+      <div class="row" style="margin-top:20px">
+        <button class="primary" data-act="start-shared"${db?"":" disabled title=\"Shared plans need a signed-in viewer\""}>Start a shared plan</button>
+        <button data-act="start-local">Take turns on this device</button>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <input id="join-code" placeholder="Partner's plan code" maxlength="6" style="max-width:190px;text-transform:uppercase" aria-label="Plan code"${db?"":" disabled"}>
+        <button class="ghost" data-act="join"${db?"":" disabled"}>Join</button>
+        ${resume?`<button class="ghost" data-act="resume">Back to plan ${resume.mode==="shared"?esc(resume.code):"on this device"}</button>`:""}
+      </div>
+      ${db?"":`<p class="hint" style="margin-top:8px">Shared plans across two phones need you to be signed in to Claude. Taking turns on one device works anywhere.</p>`}
+    </div>
+    <ol class="how card">
+      <li><div><b>Fill in your tag.</b> <span class="muted">Places with how badly you want them, travel style, budget, leave and dealbreakers.</span></div></li>
+      <li><div><b>Seal it.</b> <span class="muted">Your partner does the same, on their phone or after you hand it over.</span></div></li>
+      <li><div><b>Read the merged plan.</b> <span class="muted">Ranked places, costs for two, a dated roadmap and what to work on.</span></div></li>
+    </ol>
+  </section>
+  <div class="airmail" aria-hidden="true"></div>
+  <div class="banner" style="margin-top:22px"><span><b>Example:</b> what Sam and Riya got, flying from Sydney. Your plan will look like this.</span><button class="small" data-act="start-local">Start ours</button></div>
+  ${resultsHTML(sample,true)}`;
+}
+
+function seatTag(seat){
+  const s=state.plan[seat];
+  const sealed=s&&s.sealed;
+  const mine=state.mode==="local"||state.seat===seat;
+  let body;
+  if(sealed){body=`<p><b>${esc(s.name||"Someone")}</b> has sealed their answers.</p><p class="hint">Contents hidden from the other tag.</p>`+(mine?`<div class="row"><button class="small ghost" data-act="edit" data-seat="${seat}">${state.mode==="local"?"Re-open (owner only)":"Re-open mine"}</button></div>`:"")}
+  else if(s&&s.name){body=`<p><b>${esc(s.name)}</b> is still filling this in.</p>`+(mine?`<button class="primary" data-act="edit" data-seat="${seat}">Continue</button>`:"")}
+  else{body=`<p class="muted">Empty</p>`+(mine?`<button class="primary" data-act="edit" data-seat="${seat}">Fill in ${state.mode==="local"?"this tag":"my tag"}</button>`:(state.mode==="shared"&&!state.seat?`<button class="primary" data-act="claim" data-seat="${seat}">This is me</button>`:""))}
+  return `<div class="tag ${sealed?"sealed":""}"><span class="hole"></span><div class="label">Tag</div><div class="seat">${seat}</div><div class="row" style="margin:4px 0 10px">${sealed?`<span class="pill good">Sealed</span>`:`<span class="pill">Waiting</span>`}</div><div class="stack">${body}</div></div>`;
+}
+
+function viewPlan(){
+  const both=state.plan.A?.sealed&&state.plan.B?.sealed;
+  let share="";
+  if(state.mode==="shared")share=`<div class="card row" style="justify-content:space-between"><div><div class="label">Send this to your partner</div><div class="codebox">${esc(state.code)}</div><p class="hint">They open this same page, choose Join and type the code. The page has to be shared with them with edit access.</p></div><button data-act="copy-code">Copy code</button></div>`;
+  let result="";
+  if(both){
+    const r=marry(state.plan.A.answers,state.plan.B.answers,state.plan.home);
+    state.lastResult=r;
+    result=resultsHTML(r,false);
+  }else{
+    result=`<div class="section"><div class="card"><h3>The merged plan appears here once both tags are sealed.</h3><p class="muted" style="margin-top:6px">Nothing from either side is shown until then.</p></div></div>`;
+  }
+  return `${header()}
+  <div class="stack">
+    <div class="row" style="justify-content:space-between"><h2>Your travel folder</h2>
+      <label class="row" style="gap:8px"><span class="label">Flying from</span><input id="home" list="hub-list" value="${esc(state.plan.home)}" style="max-width:180px"></label></div>
+    ${share}
+    <div class="tags">${seatTag("A")}${seatTag("B")}</div>
+    ${state.mode==="local"?`<p class="hint">Taking turns: fill in tag A, seal it, then hand the device over for tag B. Answers are kept in this browser only.</p>`:""}
+  </div>
+  <div class="airmail" style="margin-top:28px" aria-hidden="true"></div>
+  ${result}`;
+}
+
+function viewHandoff(seat){
+  const other=seat==="A"?"B":"A";
+  return `${header()}<div class="card handoff"><span class="pill good">Tag ${seat} sealed</span><h2>Hand the device to your partner.</h2><p class="muted">Your answers are hidden. When they're ready, they fill in tag ${other}.</p><div class="row"><button class="primary" data-act="edit" data-seat="${other}">I'm the partner: open tag ${other}</button><button data-act="plan">Back to the folder</button></div></div>`;
+}
+
+function viewForm(){
+  const a=state.draft, seat=state.editing;
+  const places=a.places.map((p,i)=>`<div class="place-row" data-i="${i}">
+      <input list="dest-list" data-place="${i}" value="${esc(p.name)}" placeholder="${["e.g. Japan","e.g. Patagonia","e.g. Amalfi Coast","Anywhere else"][Math.min(i,3)]}" aria-label="Place ${i+1}">
+      <span class="want" role="group" aria-label="How much">${[1,2,3].map(w=>`<button type="button" data-want="${i}" data-w="${w}" aria-pressed="${p.want===w}">${WANT[w]}</button>`).join("")}</span>
+      <button type="button" class="small ghost" data-act="rm-place" data-i="${i}" aria-label="Remove">✕</button>
+    </div>`).join("");
+  const sliders=AXES.map(([k,lo,hi])=>`<div class="slider"><span>${lo}</span><input type="range" min="1" max="5" step="1" id="s-${k}" data-style="${k}" value="${a.style[k]}" aria-label="${lo} to ${hi}"><span>${hi}</span></div>`).join("");
+  const chips=INTERESTS.map(t=>`<label class="chip"><input type="checkbox" data-interest="${t}" ${a.interests.includes(t)?"checked":""}>${t}</label>`).join("");
+  const avoids=AVOIDS.map(([t,l])=>`<label class="chip"><input type="checkbox" data-avoid="${t}" ${a.avoid.includes(t)?"checked":""}>${l}</label>`).join("");
+  return `${header()}
+  <form class="form card" id="answers" autocomplete="off">
+    <div class="row" style="justify-content:space-between"><div><div class="label">Tag ${seat} · private</div><h2>Where would you go?</h2></div><span class="pill red">Hidden from your partner</span></div>
+    <div class="field"><label class="label" for="f-name">Your first name</label><input id="f-name" value="${esc(a.name)}" maxlength="30" required></div>
+    <div class="field"><span class="label">Places</span><p class="hint">Countries, regions or cities. "Must" means you'd be sad to never go.</p>${places}
+      ${a.places.length<10?`<div><button type="button" class="small" data-act="add-place">Add a place</button></div>`:""}</div>
+    <div class="field"><span class="label">How you like to travel</span><div class="stack">${sliders}</div></div>
+    <div class="field"><span class="label">What you want more of</span><div class="chips">${chips}</div></div>
+    <div class="field"><span class="label">Dealbreakers</span><p class="hint">Places that clash with a dealbreaker get parked, with a reason that doesn't name you.</p><div class="chips">${avoids}</div></div>
+    <div class="grid3">
+      <div class="field"><label class="label" for="f-budget">Max per trip, for two (USD)</label><input id="f-budget" type="number" min="200" step="100" value="${a.budget}"></div>
+      <div class="field"><label class="label" for="f-savings">You can put aside / month</label><input id="f-savings" type="number" min="0" step="25" value="${a.savings}"></div>
+      <div class="field"><label class="label" for="f-days">Leave days / year</label><input id="f-days" type="number" min="2" max="60" value="${a.days}"></div>
+      <div class="field"><label class="label" for="f-flight">Longest flight you'll sit (hours)</label><input id="f-flight" type="number" min="1" max="40" value="${a.maxFlight}"></div>
+      <div class="field"><label class="label" for="f-horizon">Plan ahead (years)</label><input id="f-horizon" type="number" min="1" max="10" value="${a.horizon}"></div>
+    </div>
+    <div class="row" style="justify-content:flex-end"><button type="button" class="ghost" data-act="save-draft">Save, keep editing</button><button type="submit" class="primary">Seal my answers</button></div>
+  </form>`;
+}
+
+function monthsBar(ms){return `<span class="months" aria-label="Best months: ${ms.map(m=>MONTH[m-1]).join(", ")}">${MONTH.map((_,i)=>`<i class="${ms.includes(i+1)?"on":""}"></i>`).join("")}</span>`}
+function fitPill(it,r){
+  if(it.fit==="fits")return `<span class="pill good">Within budget</span>`;
+  if(it.fit==="stretch")return `<span class="pill warn">Stretch</span>`;
+  return `<span class="pill red">Save ${Number.isFinite(it.monthsToSave)?it.monthsToSave+" mo":"up"}</span>`;
+}
+function whoPill(it,example,names){
+  if(it.both)return `<span class="pill blue">Both of you</span>`;
+  return `<span class="pill">One of you</span>`;
+}
+function destRow(it,r,example){
+  return `<div class="dest"><div class="code">${esc(it.code)}</div>
+    <div style="min-width:0"><div class="row" style="gap:8px"><h3>${esc(it.label)}</h3>${whoPill(it,example,r.names)}</div>
+      <div class="meta"><span>${it.tripDays} days</span><span>${it.hours<0.5?"no flight":"~"+Math.round(it.hours)+"h flight"}</span><span>${monthsBar(it.months)}</span>${it.reasons.length?`<span>Parked: ${esc(it.reasons.join("; "))}</span>`:""}</div></div>
+    <div class="right"><span class="mono" style="font-weight:600">${money(it.cost)}</span>${it.reasons.length?"":fitPill(it,r)}<span class="score">match ${it.score}</span></div></div>`;
+}
+
+function resultsHTML(r,example){
+  const years={};
+  r.plan.forEach(p=>{(years[p.date.getFullYear()]=years[p.date.getFullYear()]||[]).push(p)});
+  const totalPlanned=r.plan.reduce((s,p)=>s+p.cost,0);
+  const tl=Object.keys(years).length?Object.entries(years).map(([y,ts])=>`<div class="tl-year"><div class="yr">${y}</div><div class="tl-trips">${ts.map(t=>`<div class="tl-trip"><span class="when">${MONTH[t.date.getMonth()]}</span><div style="min-width:0"><b>${esc(t.label)}</b> <span class="muted">· ${t.tripDays} days · ${t.both?"shared dream":"a gift from one of you"}</span></div><span class="mono">${money(t.cost)}</span></div>`).join("")}</div></div>`).join(""):`<p class="muted">No trip fits yet with the current savings and leave.</p>`;
+  const blend=AXES.map(([k,lo,hi,tip])=>{const g=r.gaps[k];const pct=v=>((v-1)/4*100).toFixed(1)+"%";
+    return `<div><div class="axis"><span>${lo}</span><div class="track"><div class="range" style="left:${pct(g.lo)};width:calc(${pct(g.hi)} - ${pct(g.lo)})"></div><div class="mid" style="left:${pct(r.style[k])}"></div></div><span>${hi}</span></div>${g.gap>=2?`<p class="tip" style="margin-top:6px">${tip}</p>`:""}</div>`}).join("");
+  const ins=insightsFor(r).map(([c,i,t])=>`<li><span class="ic ${c}" aria-hidden="true">${i}</span><div>${t}</div></li>`).join("");
+  const unk=r.unknown.length?`<p class="hint">Not in our reference list yet, so no cost estimate: ${r.unknown.map(u=>esc(u.label)).join(", ")}. Try the country or a nearby region.</p>`:"";
+  const claudeBlock=example?"":`<div class="section"><div class="row" style="justify-content:space-between"><h2>Ask Claude</h2>${state.sampleOK?`<button data-act="ask-claude" ${state.claude.busy?"disabled":""}>${state.claude.busy?"Thinking…":state.claude.text?"Ask again":"Get a second opinion"}</button>`:""}</div>
+    ${state.sampleOK?`<p class="hint">Sends only the merged plan above (no one's individual answers) and asks for practical next steps.</p>`:`<p class="hint">Asking Claude isn't available in this view.</p>`}
+    ${state.claude.text?`<div class="card claude-out">${esc(state.claude.text)}</div>`:""}${state.claude.err?`<p class="hint" style="color:var(--red)">${esc(state.claude.err)}</p>`:""}</div>`;
+  return `
+  <div class="section">
+    <div class="kpis">
+      <div class="kpi"><div class="label">Shared dreams</div><div class="v">${r.sharedCount}</div><div class="s">places you both listed</div></div>
+      <div class="kpi"><div class="label">Travel fund</div><div class="v">${money(r.monthly)}</div><div class="s">a month, together</div></div>
+      <div class="kpi"><div class="label">Trips planned</div><div class="v">${r.plan.length}</div><div class="s">over ${r.horizon} yr · ${money(totalPlanned)}</div></div>
+      <div class="kpi"><div class="label">Style match</div><div class="v">${r.compat}%</div><div class="s">${r.compat>=80?"very close":r.compat>=60?"some give and take":"plan the compromises"}</div></div>
+    </div>
+  </div>
+  <div class="section"><h2>What to work on</h2><ul class="insights">${ins}</ul></div>
+  <div class="section"><div class="row" style="justify-content:space-between"><h2>Your roadmap</h2><span class="hint">Starts next month · shared budget ${money(r.ceiling)}/trip · ${r.days} leave days/yr</span></div><div class="card timeline">${tl}</div></div>
+  <div class="section"><h2>The shortlist</h2><p class="hint">Costs are for two from ${esc(r.home.name)}: return economy flights plus ${r.comfortMult<0.95?"budget":r.comfortMult>1.4?"comfortable":"mid-range"} stays, food and local transport. Treat them as planning numbers, not quotes.</p>
+    <div class="dest-list">${r.items.map(i=>destRow(i,r,example)).join("")||`<p class="muted">No places could be ranked yet.</p>`}</div>${unk}
+    ${r.parked.length?`<details class="card"><summary>Parked for now (${r.parked.length})</summary><div class="dest-list" style="margin-top:12px">${r.parked.map(i=>destRow(i,r,example)).join("")}</div></details>`:""}
+  </div>
+  <div class="section"><h2>How you travel, together</h2><p class="hint">The shaded band spans both of you; the dot is where the plan sits. Who is at which end isn't shown.</p><div class="card blend">${blend}</div></div>
+  ${claudeBlock}`;
+}
+
+const SAMPLE={
+  A:{name:"Sam",places:[{name:"Japan",want:3},{name:"Peru",want:3},{name:"Iceland",want:2},{name:"Italy",want:2},{name:"New Zealand",want:1},{name:"Patagonia",want:2}],style:{pace:4,comfort:2,activity:4,setting:3,planning:2,social:3},interests:["hiking","food","wildlife","snow"],avoid:["busy"],budget:9000,savings:450,days:20,maxFlight:24,horizon:5},
+  B:{name:"Riya",places:[{name:"Japan",want:3},{name:"Italy",want:3},{name:"Greece",want:3},{name:"Morocco",want:2},{name:"Vietnam",want:2},{name:"Iceland",want:1},{name:"Thailand",want:2}],style:{pace:2,comfort:4,activity:3,setting:4,planning:4,social:2},interests:["food","art","history","beach","wellness"],avoid:["hot"],budget:7000,savings:550,days:25,maxFlight:22,horizon:5}
+};
+
+function render(){
+  const app=document.getElementById("app");
+  const active=document.activeElement&&document.activeElement.id;
+  if(state.view==="home")app.innerHTML=viewHome();
+  else if(state.view==="plan")app.innerHTML=viewPlan();
+  else if(state.view==="form")app.innerHTML=viewForm();
+  else if(state.view==="handoff")app.innerHTML=viewHandoff(state.handoffSeat);
+  if(active){const el=document.getElementById(active);if(el&&el.tagName==="INPUT"&&state.view!=="form")el.focus()}
+}
+
+/* Form state is read from the DOM whenever the user acts, so a re-render never drops typing. */
+function readForm(){
+  const a=state.draft;if(!a)return;
+  const f=document.getElementById("answers");if(!f)return;
+  a.name=f.querySelector("#f-name").value.trim();
+  f.querySelectorAll("[data-place]").forEach(inp=>{a.places[+inp.dataset.place].name=inp.value});
+  f.querySelectorAll("[data-style]").forEach(inp=>{a.style[inp.dataset.style]=+inp.value});
+  a.interests=[...f.querySelectorAll("[data-interest]:checked")].map(x=>x.dataset.interest);
+  a.avoid=[...f.querySelectorAll("[data-avoid]:checked")].map(x=>x.dataset.avoid);
+  const num=(id,d)=>{const v=parseFloat(f.querySelector(id).value);return Number.isFinite(v)?v:d};
+  a.budget=num("#f-budget",6000);a.savings=num("#f-savings",0);a.days=num("#f-days",20);a.maxFlight=num("#f-flight",20);a.horizon=Math.min(10,Math.max(1,Math.round(num("#f-horizon",4))));
+}
+function draftKey(){return "draft:"+(state.mode==="shared"?state.code:"local")+":"+state.editing}
+
+function openPlan(mode,code){
+  state.mode=mode;state.code=code||null;state.claude={busy:false,text:"",err:""};
+  if(mode==="local"){state.plan=LS.get("local",{home:"Sydney",A:null,B:null});state.seat=null}
+  else{state.plan={home:"Sydney",A:null,B:null};state.seat=LS.get("seat:"+code,null)}
+  LS.set("last",{mode,code});
+  state.view="plan";render();subscribePlan();
+}
+
+document.addEventListener("click",async ev=>{
+  const b=ev.target.closest("[data-act],[data-want]");if(!b)return;
+  if(b.dataset.want!=null){ev.preventDefault();readForm();state.draft.places[+b.dataset.want].want=+b.dataset.w;render();return}
+  const act=b.dataset.act;
+  if(act==="home"){stopSubs();state.view="home";render();window.scrollTo(0,0)}
+  else if(act==="start-local")openPlan("local");
+  else if(act==="start-shared"){const code=genCode();LS.set("seat:"+code,"A");openPlan("shared",code);await saveHome(state.plan.home)}
+  else if(act==="join"){const c=(document.getElementById("join-code").value||"").toUpperCase().replace(/[^A-Z0-9]/g,"");if(c.length!==6){toast("Plan codes are 6 letters and numbers.");return}openPlan("shared",c)}
+  else if(act==="resume"){const l=LS.get("last",null);if(l)openPlan(l.mode,l.code)}
+  else if(act==="plan"){state.view="plan";render()}
+  else if(act==="claim"){state.seat=b.dataset.seat;LS.set("seat:"+state.code,state.seat);render()}
+  else if(act==="copy-code"){try{await navigator.clipboard.writeText(state.code);toast("Code copied")}catch(e){toast("Select the code and copy it: "+state.code)}}
+  else if(act==="edit"){
+    const seat=b.dataset.seat;state.editing=seat;
+    const existing=state.plan[seat]&&state.plan[seat].answers;
+    state.draft=LS.get(draftKey(),null)||(existing?JSON.parse(JSON.stringify(existing)):emptyAnswers());
+    if(existing&&state.plan[seat].sealed&&state.mode==="local"){/* re-opening a sealed local tag clears the seal */}
+    state.view="form";render();window.scrollTo(0,0);
+  }
+  else if(act==="add-place"){readForm();state.draft.places.push({name:"",want:2});render()}
+  else if(act==="rm-place"){readForm();state.draft.places.splice(+b.dataset.i,1);if(!state.draft.places.length)state.draft.places.push({name:"",want:2});render()}
+  else if(act==="save-draft"){readForm();LS.set(draftKey(),state.draft);const ok=await saveSeat(state.editing,{name:state.draft.name,sealed:false,answers:state.draft,updatedAt:Date.now()});if(ok)toast("Saved. Still hidden from your partner.")}
+  else if(act==="ask-claude")askClaude();
+});
+document.addEventListener("submit",async ev=>{
+  if(ev.target.id!=="answers")return;ev.preventDefault();readForm();
+  const a=state.draft;
+  if(!a.name){toast("Add your first name so your partner knows you've sealed.");return}
+  if(!a.places.some(p=>p.name.trim())){toast("Add at least one place.");return}
+  a.places=a.places.filter(p=>p.name.trim());
+  const ok=await saveSeat(state.editing,{name:a.name,sealed:true,answers:a,updatedAt:Date.now()});
+  if(!ok)return;
+  LS.del(draftKey());
+  const seat=state.editing;state.editing=null;state.draft=null;
+  const other=seat==="A"?"B":"A";
+  if(state.mode==="local"&&!(state.plan[other]&&state.plan[other].sealed)){state.handoffSeat=seat;state.view="handoff"}
+  else state.view="plan";
+  render();window.scrollTo(0,0);toast("Sealed");
+});
+document.addEventListener("change",ev=>{
+  if(ev.target.id==="home"){const h=findHub(ev.target.value);if(!h){toast("Pick a city from the list so flight estimates work.");ev.target.value=state.plan.home;return}saveHome(h.name);render()}
+});
+
+async function askClaude(){
+  const r=state.lastResult;if(!r||!state.sample)return;
+  state.claude={busy:true,text:"",err:""};render();
+  const summary={home:r.home.name,monthlyTravelFund:r.monthly,sharedPerTripBudget:r.ceiling,higherPerTripAppetite:r.stretch,sharedLeaveDays:r.days,maxFlightHours:r.maxFlight,horizonYears:r.horizon,styleMatchPercent:r.compat,
+    styleAxes:Object.fromEntries(AXES.map(([k,lo,hi])=>[`${lo} (1) to ${hi} (5)`,{plan:r.style[k],spread:r.gaps[k].gap}])),
+    sharedInterests:r.sharedInterests,dealbreakersInPlay:r.avoid,
+    shortlist:r.items.map(i=>({place:i.label,listedBy:i.both?"both":"one",costForTwoUSD:i.cost,days:i.tripDays,flightHours:Math.round(i.hours),bestMonths:i.months.map(m=>MONTH[m-1])})),
+    roadmap:r.plan.map(p=>({when:MONTH[p.date.getMonth()]+" "+p.date.getFullYear(),place:p.label,costForTwoUSD:p.cost})),
+    parked:r.parked.map(p=>({place:p.label,reason:p.reasons.join("; ")}))};
+  const prompt=`You are helping a couple turn their merged travel wishes into a plan they can actually carry out. Each partner answered privately; you only see the merged result below. Never guess which partner wanted what.
+
+Merged plan (JSON):
+${JSON.stringify(summary)}
+
+Write 5 to 7 short, specific recommendations in plain text (no markdown headings, no bold). Number them. Cover: whether the roadmap order makes sense, one concrete way to hit the savings target, the biggest travel-style compromise and how to handle it on the first trip, a cheaper alternative for any trip that's a stretch, and one thing to book or decide this month. Use the dollar figures given. Keep it under 250 words.`;
+  try{
+    const res=await state.sample(prompt,{onText:({text})=>{state.claude.text=text;const el=document.querySelector(".claude-out");if(el)el.textContent=text;else render()},modelTier:"default"});
+    state.claude={busy:false,text:res.text,err:""};
+  }catch(e){
+    state.claude={busy:false,text:state.claude.text,err:e&&e.code==="rate_limited"?"Claude is busy right now. Try again in a minute.":e&&e.code==="not_granted"?"Asking Claude wasn't allowed for this page.":"Couldn't get an answer: "+(e&&e.message||"try again")};
+    if(e&&e.code==="not_granted")state.sampleOK=false;
+  }
+  render();
+}
+
+/* boot */
+document.getElementById("dest-list").innerHTML=DESTS.map(d=>`<option value="${esc(d.name)}">`).join("")+Object.keys(ALIASES).map(a=>`<option value="${esc(a.replace(/\b\w/g,c=>c.toUpperCase()))}">`).join("");
+document.getElementById("hub-list").innerHTML=HUBS.map(h=>`<option value="${esc(h.name)}">`).join("");
+render();
+(async()=>{
+  if(!window.claude||!window.claude.use)return;
+  try{
+    const [d,s]=await Promise.all([window.claude.use("db"),window.claude.use("sample")]);
+    db=d;state.sample=s;state.sampleOK=!!s;render();
+  }catch(e){}
+})();
+</script>
+
+</body>
+</html>
