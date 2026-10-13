@@ -89,7 +89,7 @@ input[type=checkbox]{width:auto;accent-color:var(--red)}
 .want button{border:0;border-radius:0;padding:7px 10px;font-size:13px;background:var(--paper);font-weight:500}
 .want button[aria-pressed="true"]{background:var(--blue);color:var(--card)}
 .slider{display:grid;grid-template-columns:minmax(80px,1fr) minmax(120px,2fr) minmax(80px,1fr);gap:10px;align-items:center;font-size:13px}
-.slider span:last-child{text-align:right}
+.slider span:last-of-type{text-align:right}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:99px;padding:5px 12px;font-size:13.5px;cursor:pointer;background:var(--paper);user-select:none}
 .chip:has(input:checked){border-color:var(--red);background:color-mix(in srgb,var(--red) 10%,var(--card))}
@@ -108,9 +108,12 @@ input[type=checkbox]{width:auto;accent-color:var(--red)}
 .dest .meta{font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:3px}
 .dest .right{display:grid;justify-items:end;gap:6px;text-align:right}
 .score{font-family:var(--f-mono);font-size:13px;color:var(--muted)}
-.months{display:inline-grid;grid-template-columns:repeat(12,7px);gap:2px;vertical-align:middle}
-.months i{height:9px;border-radius:1px;background:var(--line)}
-.months i.on{background:var(--blue)}
+.months{display:inline-grid;grid-template-columns:repeat(12,9px);gap:2px;vertical-align:middle}
+.months i{display:grid;gap:2px;font-style:normal}
+.months i::before{content:"";height:9px;border-radius:1px;background:var(--line)}
+.months i::after{content:attr(data-m);font:600 8px/1 var(--f-mono);color:var(--muted);text-align:center;opacity:.8}
+.months i.on::before{background:var(--blue)}
+.months i.on::after{color:var(--ink);opacity:1}
 .timeline{position:relative;display:grid;gap:0}
 .tl-year{display:grid;grid-template-columns:70px 1fr;gap:14px;padding-block:12px;border-top:1px solid var(--line)}
 .tl-year:first-child{border-top:0}
@@ -134,7 +137,7 @@ input[type=checkbox]{width:auto;accent-color:var(--red)}
 details summary{cursor:pointer;font-weight:600}
 .claude-out{white-space:pre-wrap;font-size:14.5px}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:8px;font-size:14px;z-index:9;max-width:calc(100% - 32px)}
-.handoff{text-align:center;padding:40px 20px;display:grid;gap:14px;justify-items:center}
+.handoff{padding:28px 24px}
 .codebox{font-family:var(--f-mono);font-size:26px;letter-spacing:.2em;font-weight:600}
 
 @media (max-width:720px){
@@ -151,6 +154,215 @@ details summary{cursor:pointer;font-weight:600}
   .tl-trip .when{grid-column:1/-1}
 }
 @media (prefers-reduced-motion:no-preference){.dest,.tl-trip{transition:border-color .15s}.dest:hover{border-color:var(--muted)}}
+/* == HOME & EXAMPLE (agent 1) == */
+.hero{align-items:start;margin-bottom:26px}
+.hero h1{max-width:17ch}
+.promise{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:start;margin-top:18px;padding:12px 14px;max-width:54ch;background:var(--card);border:1px solid var(--line);border-left:3px solid var(--red);border-radius:4px 8px 8px 4px;font-size:14.5px}
+.promise svg{color:var(--red);margin-top:2px}
+.how-wrap{display:grid;gap:12px}
+.how-wrap .how{gap:14px}
+.starts{display:grid;gap:12px;margin-bottom:34px;scroll-margin-top:12px}
+.starts-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 14px}
+.starts-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.start{position:relative;display:flex;flex-direction:column;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:22px 18px 18px;overflow:hidden;min-width:0}
+.start::before{content:"";position:absolute;inset:0 0 auto 0;height:6px;background:repeating-linear-gradient(-45deg,var(--red) 0 10px,var(--card) 10px 16px,var(--blue) 16px 26px,var(--card) 26px 32px)}
+.start-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.start-top svg{color:var(--blue);flex:none}
+.start .kick{font-family:var(--f-mono);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--blue)}
+.start .steps{margin:0;padding-left:18px;font-size:14px;color:var(--muted);display:grid;gap:2px}
+.start .go{margin-top:auto;display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding-top:6px}
+.start .join{display:flex;flex-wrap:wrap;gap:8px;align-items:center;border-top:1px dashed var(--line);padding-top:12px}
+.start .join .label{flex-basis:100%}
+.start .join input{flex:1 1 140px;min-width:0;width:auto;font-family:var(--f-mono);letter-spacing:.14em;text-transform:uppercase}
+.resume{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--line);border-left:3px solid var(--good);border-radius:4px 8px 8px 4px;padding:10px 14px;font-size:14px}
+
+/* the example: a framed specimen with its own ground, a sticky stamp bar and labelled sections */
+.specimen{--ex:color-mix(in srgb,var(--blue) 6%,var(--paper));--ex-edge:color-mix(in srgb,var(--blue) 45%,var(--line));position:relative;margin-top:26px;border:2px dashed var(--ex-edge);border-radius:14px;background:var(--ex);padding:0 18px 22px}
+.ex-bar{position:sticky;top:0;z-index:4;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:0 -18px;padding:10px 18px;background:var(--ex);border-bottom:1px dashed var(--ex-edge);border-radius:12px 12px 0 0;font-size:14px;box-shadow:0 6px 10px -10px color-mix(in srgb,var(--ink) 40%,transparent)}
+.ex-bar .who{min-width:0}
+.ex-bar a{margin-left:auto;font-weight:600;font-size:13.5px;color:var(--blue);text-underline-offset:3px;white-space:nowrap}
+.ex-stamp{display:inline-block;font-family:var(--f-mono);font-weight:600;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--red);border:2px solid var(--red);border-radius:4px;padding:2px 8px 2px 10px;transform:rotate(-3deg);box-shadow:inset 0 0 0 2px var(--ex),inset 0 0 0 3px color-mix(in srgb,var(--red) 55%,transparent);background:var(--ex)}
+.ex-intro{display:grid;gap:8px;padding-top:20px}
+.ex-intro p{max-width:62ch}
+.specimen .section{margin-top:30px}
+.specimen .section::before{content:"Example · Sam & Riya";font-family:var(--f-mono);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--red);margin-bottom:-8px}
+.ex-end{display:grid;gap:12px;margin-top:34px;padding-top:20px;border-top:2px dashed var(--ex-edge)}
+.ex-end .label{color:var(--red)}
+@media (max-width:720px){
+  .starts-grid{grid-template-columns:1fr}
+  .specimen{padding:0 12px 18px}
+  .ex-bar{margin:0 -12px;padding:8px 12px;gap:6px 10px;font-size:12.5px}
+  .ex-bar a{font-size:12.5px}
+  .ex-bar .where{display:none}
+  .ex-stamp{font-size:11px;letter-spacing:.12em;padding:1px 6px 1px 8px}
+}
+
+/* == RESULTS (agent 2) == */
+/* Order: headline + at-a-glance (shared wants, next-trip ticket, to-dos) → roadmap rail → shortlist with key → style blend → notes. */
+.r-summary{gap:16px}
+.r-headline{display:grid;gap:6px}
+.r-headline h2{font-size:clamp(24px,3.8vw,34px);max-width:30ch}
+.r-head{display:grid;gap:4px}
+.r-head .hint{max-width:72ch}
+.r-glance{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.45fr) minmax(0,1fr);gap:12px;align-items:stretch}
+.r-box{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:grid;gap:10px;align-content:start;min-width:0}
+.r-want-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.r-want-list li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center}
+.r-want-list b{font-family:var(--f-display);font-weight:400;font-size:18px;line-height:1.2}
+.r-mini-code{font-family:var(--f-mono);font-size:11.5px;font-weight:600;letter-spacing:.06em;border:1.5px dashed var(--line);border-radius:5px;padding:2px 6px}
+.r-want-when{font-family:var(--f-mono);font-size:12px;color:var(--muted);white-space:nowrap}
+.r-todo ol{list-style:none;margin:0;padding:0;display:grid;gap:10px;counter-reset:todo}
+.r-todo li{display:grid;grid-template-columns:24px minmax(0,1fr);gap:10px;align-items:start;font-weight:500;line-height:1.4}
+.r-todo li::before{counter-increment:todo;content:counter(todo);width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font:600 12px/1 var(--f-mono);color:var(--red);border:1.5px solid color-mix(in srgb,var(--red) 55%,transparent);background:color-mix(in srgb,var(--red) 8%,var(--card))}
+/* next trip, drawn as a ticket with a tear-off stub */
+.r-ticket{position:relative;display:grid;grid-template-columns:64px minmax(0,1fr);background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;min-width:0}
+.r-ticket::before{content:"";position:absolute;inset:0 0 auto 0;height:6px;background:repeating-linear-gradient(-45deg,var(--red) 0 10px,var(--card) 10px 16px,var(--blue) 16px 26px,var(--card) 26px 32px)}
+.r-stub{position:relative;display:grid;place-items:center;background:var(--soft);border-right:2px dashed var(--line)}
+.r-stub span{writing-mode:vertical-rl;transform:rotate(180deg);font:600 24px/1 var(--f-mono);letter-spacing:.14em;color:var(--red)}
+.r-stub::before,.r-stub::after{content:"";position:absolute;right:-10px;width:18px;height:18px;border-radius:50%;background:var(--paper);border:1px solid var(--line)}
+.r-stub::before{top:-10px}.r-stub::after{bottom:-10px}
+.r-ticket-body{padding:20px 18px 16px;display:grid;gap:10px;align-content:start;min-width:0}
+.r-ticket-name{font-size:clamp(28px,4vw,38px);line-height:1.05}
+.r-ticket-facts{display:flex;flex-wrap:wrap;gap:8px 22px}
+.r-ticket-facts > span{display:grid;gap:1px}
+.r-k{font-size:11px;text-transform:uppercase;letter-spacing:.09em;font-weight:600;color:var(--muted)}
+.r-ticket-facts b{font-size:16px}
+.r-then{border-top:1px dashed var(--line);padding-top:10px}
+.r-then b{color:var(--ink);font-weight:600}
+.kpi .v small{font-size:13px;font-weight:400;color:var(--muted);margin-left:2px}
+/* keys / legends */
+.r-key{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;font-size:12.5px;color:var(--muted);padding:10px 12px;border:1px dashed var(--line);border-radius:8px}
+.r-key > span{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px}
+.r-key .pill{font-size:11px;padding:1px 8px}
+.r-dot{display:inline-block;width:12px;height:12px;border-radius:50%;flex:none;border:2px solid var(--blue);background:var(--blue)}
+.r-dot.one{background:var(--card);border-color:var(--muted)}
+.r-band{display:inline-block;width:28px;height:8px;border-radius:4px;background:color-mix(in srgb,var(--blue) 30%,transparent)}
+.pill.r-who::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--blue)}
+.pill.r-who.one{color:var(--muted)}
+.pill.r-who.one::before{background:transparent;border:1.5px solid var(--muted);width:5px;height:5px}
+/* roadmap rail */
+.r-tl{list-style:none;margin:0;padding:0 0 0 28px;position:relative}
+.r-tl::before{content:"";position:absolute;left:9px;top:14px;bottom:18px;width:2px;background:var(--line)}
+.r-tl-year{margin:6px 0 2px -28px;position:relative}
+.r-tl-year:first-child{margin-top:0}
+.r-tl-year span{display:inline-block;font:600 14px/1 var(--f-mono);padding:5px 9px;border:1px solid var(--line);border-radius:99px;background:var(--card)}
+.r-tl-stop{position:relative;display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px dashed var(--line)}
+.r-tl-stop:has(+ .r-tl-year),.r-tl-stop:last-child{border-bottom:0}
+.r-tl-stop::before{content:"";position:absolute;left:-25px;top:50%;margin-top:-7px;width:14px;height:14px;border-radius:50%;box-sizing:border-box;border:2px solid var(--blue);background:var(--blue);box-shadow:0 0 0 3px var(--card)}
+.r-tl-stop.one::before{background:var(--card);border-color:var(--muted)}
+.r-tl-stop.is-next::before{border-color:var(--red);box-shadow:0 0 0 3px var(--card),0 0 0 6px color-mix(in srgb,var(--red) 22%,transparent)}
+.r-tl-stop.is-next.both::before{background:var(--red)}
+.r-tl-when{font-size:13px;font-weight:600;color:var(--muted)}
+.r-tl-stop b{font-size:15.5px}
+.r-tl-stop .hint{font-size:12.5px}
+.r-tl-cost{font-weight:600}
+.r-next-flag{display:inline-block;vertical-align:2px;margin-left:4px;font:600 10.5px/1 var(--f-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--red);border:1px solid color-mix(in srgb,var(--red) 45%,transparent);border-radius:99px;padding:3px 7px}
+/* shortlist rows */
+.dest .meta{align-items:center}
+.r-best{display:inline-flex;align-items:center;gap:6px}
+.r-best-l{font-size:11.5px}
+.r-planned{color:var(--blue);font-weight:600}
+.r-parked{flex-basis:100%}
+.r-cost .mono{font-weight:600;font-size:16px}
+.r-cost .muted{font-size:12px}
+/* style blend */
+.blend{gap:18px}
+.r-axis{display:grid;gap:4px}
+.r-axis-note,.r-axis .tip{margin-left:122px}
+.r-axis-note{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)}
+.r-axis-note .pill{font-size:11px;padding:1px 8px}
+.r-axis.wide .range{background:color-mix(in srgb,var(--warn) 34%,transparent)}
+.r-axis .tip{margin-top:4px}
+.r-same{font-size:11.5px}
+/* notes */
+.insights .r-lead{display:block;font-weight:600}
+.insights .r-detail{color:var(--muted);font-size:14px}
+@media (max-width:860px){.r-glance{grid-template-columns:1fr}}
+@media (max-width:720px){
+  .r-ticket{grid-template-columns:48px minmax(0,1fr)}
+  .r-stub span{font-size:18px}
+  .r-axis-note,.r-axis .tip{margin-left:0}
+  .r-tl-stop{grid-template-columns:36px minmax(0,1fr) auto;gap:10px}
+  .r-key{display:grid;gap:8px}
+  .r-key > span{display:block;line-height:1.7}
+  .r-key .pill{margin-right:4px}
+}
+
+/* == FORM, FOLDER & HEADER (agent 3) == */
+/* progress: three segments, top rule fills as the couple moves along */
+.progress{list-style:none;margin:0 0 20px;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.progress li{display:grid;grid-template-columns:24px minmax(0,1fr);gap:8px;align-items:start;padding-top:10px;border-top:3px solid var(--line);font-size:12.5px;line-height:1.35;color:var(--muted)}
+.progress .n{width:24px;height:24px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-family:var(--f-mono);font-size:12px;background:var(--card);color:var(--muted)}
+.progress b{display:block;color:var(--ink);font-weight:600;font-size:14px}
+.progress li.done{border-top-color:var(--good)}
+.progress li.done .n{background:var(--good);border-color:var(--good);color:var(--card)}
+.progress li.now{border-top-color:var(--blue)}
+.progress li.now .n{background:var(--blue);border-color:var(--blue);color:var(--card)}
+/* folder */
+.folder-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px 20px;flex-wrap:wrap}
+.from{display:grid;gap:4px}
+.from input{width:200px;max-width:100%}
+.next-step{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;border-left:3px solid var(--blue);background:var(--card);border-radius:0 8px 8px 0;padding:10px 14px;font-size:14.5px}
+.next-step .label{color:var(--blue)}
+.next-step.done{border-left-color:var(--good)}
+.next-step.done .label{color:var(--good)}
+.share{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px 20px}
+.share > div{min-width:0;flex:1 1 260px}
+.tag{display:grid;gap:12px;align-content:start}
+.tag .label{display:flex;align-items:center;gap:8px}
+.tag .you{font-size:11px;letter-spacing:.06em;color:var(--card);background:var(--blue);border-radius:4px;padding:1px 6px}
+.tag.mine{border-color:color-mix(in srgb,var(--blue) 60%,var(--line));box-shadow:0 0 0 1px color-mix(in srgb,var(--blue) 60%,var(--line))}
+.tag .tag-id{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.tag .tag-id .seat{line-height:1}
+.stamp{display:inline-block;font-family:var(--f-mono);font-weight:600;font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--good);border:2px solid currentColor;border-radius:5px;padding:2px 9px;outline:1px solid currentColor;outline-offset:2px;transform:rotate(-6deg);background:color-mix(in srgb,var(--good) 8%,var(--card))}
+@media (prefers-reduced-motion:no-preference){
+  .stamp.press{animation:stamp-in .5s cubic-bezier(.2,1.5,.4,1) .15s both}
+  @keyframes stamp-in{from{opacity:0;transform:rotate(-16deg) scale(1.9)}to{opacity:1;transform:rotate(-6deg) scale(1)}}
+}
+/* form */
+.form-nav{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 14px;margin-bottom:14px}
+.form-nav .hint{margin:0}
+.form .form-head{display:grid;gap:4px}
+.privacy{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:start;background:color-mix(in srgb,var(--red) 6%,var(--card));border:1px dashed color-mix(in srgb,var(--red) 50%,var(--line));border-radius:8px;padding:12px 14px;font-size:14px}
+.privacy svg{color:var(--red);margin-top:2px}
+.privacy b{color:var(--red)}
+.privacy ul{margin:4px 0 0;padding-left:18px;color:var(--muted);display:grid;gap:2px}
+.fstep{display:grid;gap:10px;padding-top:20px;border-top:1px solid var(--line);min-width:0}
+.fstep-h{display:flex;align-items:center;gap:10px}
+.fstep-n{flex:none;width:26px;height:26px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-family:var(--f-mono);font-size:12px;background:var(--paper)}
+.fstep-h + .hint{margin-top:-4px}
+.places{display:grid;gap:10px}
+.want-key{display:flex;flex-wrap:wrap;gap:4px 18px;margin:0;font-size:13px;color:var(--muted)}
+.want-key b{color:var(--ink);font-weight:600}
+.slider .end{color:var(--muted)}
+.slider .end.on{color:var(--ink);font-weight:600}
+.slider output{grid-column:2;grid-row:2;text-align:center;font-size:12.5px;font-weight:600;color:var(--blue);margin-top:-4px}
+.money .field{align-content:start}
+.money .hint{font-size:12.5px}
+.seal-bar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:14px 20px;margin:4px -18px -18px;padding:18px;border-top:2px dashed var(--line);background:var(--soft);border-radius:0 0 var(--r) var(--r)}
+.seal-bar > div:first-child{flex:1 1 280px;min-width:0}
+.form button.seal-btn{display:inline-flex;align-items:center;gap:8px;background:var(--red);border-color:var(--red);color:var(--card)}
+.form button.seal-btn:hover{background:color-mix(in srgb,var(--red) 85%,var(--ink))}
+/* hand-off */
+.handoff-grid{display:grid;grid-template-columns:minmax(0,220px) minmax(0,1fr);gap:28px;align-items:center}
+.handoff-tags{display:grid;gap:12px}
+.tag.mini{padding:16px 14px 14px;gap:8px}
+.tag.mini .seat{font-size:24px}
+.tag.mini .hole{top:14px;right:12px;width:12px;height:12px}
+.handoff-copy{display:grid;gap:12px;justify-items:start}
+@media (max-width:720px){
+  .handoff-grid{grid-template-columns:1fr;gap:20px}
+  .handoff-tags{grid-template-columns:1fr 1fr}
+  .place-row{grid-template-columns:minmax(0,1fr) auto}
+  .place-row .want{grid-column:1/-1;grid-row:2;justify-self:start}
+  .slider output{grid-column:1/-1;grid-row:3;margin-top:0}
+  .progress{gap:6px}
+  .progress li{grid-template-columns:1fr;gap:6px}
+  .seal-bar .row{width:100%}
+  .seal-bar .row button{flex:1 1 auto}
+}
+@media (max-width:480px){.grid3.money{grid-template-columns:1fr;gap:12px}}
+
 </style>
 
 <div class="wrap" id="app"></div>
@@ -375,47 +587,56 @@ function marry(A,B,homeName,now=new Date()){
   return {home,style,gaps,comfortMult,ceiling,stretch,monthly,days,maxFlight,horizon,avoid:[...avoid],sharedInterests,items,parked,unknown,plan,unscheduled,compat,sharedCount,names:[A.name||"Partner A",B.name||"Partner B"]};
 }
 
+// Returns notes as {tone, ic, lead, detail, todo?, pri}. `todo` is a short action;
+// the summary shows the two with the lowest `pri`.
 function insightsFor(r){
-  const out=[],money=v=>"$"+Math.round(v).toLocaleString("en-US");
+  const out=[],money=v=>"$"+Math.round(v).toLocaleString("en-US"),ym=d=>MONTH[d.getMonth()]+" "+d.getFullYear();
+  const add=(tone,ic,lead,detail,todo,pri=5)=>out.push({tone,ic,lead,detail,todo,pri});
+  const s=n=>n===1?"":"s";
   if(r.plan.length){
-    const perYear=r.plan.length/r.horizon;
-    out.push(["good","✓",`At ${money(r.monthly)} a month together, this plan fits <b>${r.plan.length} trip${r.plan.length>1?"s":""}</b> into ${r.horizon} year${r.horizon>1?"s":""}, about ${perYear.toFixed(1)} a year. Set up one automatic transfer on payday so the fund grows without anyone having to remember.`]);
+    const n=r.plan.length,perYear=n/r.horizon;
+    add("good","✓",`${n} trip${s(n)} fit into ${r.horizon} year${s(r.horizon)}.`,`That's about ${perYear.toFixed(1)} a year at ${money(r.monthly)} a month together. One automatic transfer on payday keeps the fund growing without anyone having to remember.`,`Set up an automatic ${money(r.monthly)} monthly transfer into a shared travel fund.`,2);
   }else{
-    out.push(["red","!",`Nothing on your list fits the plan yet. Either the savings rate is too low for these trips or the shortlist is all parked. Try adding nearer places, or raise the monthly amount.`]);
+    add("red","!","Nothing on your list fits the plan yet.","Either the savings rate is too low for these trips or every place is parked. Add nearer places or raise the monthly amount.",r.monthly?"Add a nearer place, or raise what you save each month.":"Agree on an amount to save each month.",0);
   }
   const topShared=r.items.find(i=>i.both);
   if(topShared){
     const sched=r.plan.find(p=>p.key===topShared.key);
-    if(sched)out.push(["blue","★",`Your strongest shared dream is <b>${topShared.label}</b>, planned for ${MONTH[sched.date.getMonth()]} ${sched.date.getFullYear()} at roughly ${money(topShared.cost)} for two. Book flights 4–7 months before to hold that number.`]);
-    else{
+    if(sched){
+      const d=sched.date,soon=new Date(),from=new Date(d.getFullYear(),d.getMonth()-7,1),to=new Date(d.getFullYear(),d.getMonth()-4,1);
+      const fromTxt=from<=soon?"now":ym(from),toTxt=to<=soon?"soon":ym(to);
+      add("blue","★",`${topShared.label} is the place you both want most.`,`It's planned for ${ym(d)} at about ${money(topShared.cost)} for two. Booking flights 4 to 7 months ahead helps hold that price.`,to<=soon?`Book ${topShared.label} flights soon.`:`Book ${topShared.label} flights between ${fromTxt} and ${toTxt}.`,1);
+    }else{
       const need=topShared.cost, months=r.monthly?Math.ceil(need/r.monthly):Infinity;
-      out.push(["warn","★",`<b>${topShared.label}</b> is the dream you share most, but at ~${money(need)} it ${Number.isFinite(months)?`needs ${months} months of saving`:"needs a savings plan"}. To get there within a year you'd need ${money(need/12)} a month just for this trip.`]);
+      add("warn","★",`${topShared.label} is the place you both want most, but it doesn't fit yet.`,`At about ${money(need)} for two it ${Number.isFinite(months)?`takes ${months} months of saving at your current rate`:"needs a savings plan"}. Reaching it within a year means ${money(need/12)} a month for this trip alone.`,`Decide whether ${topShared.label} is worth ${money(need/12)} a month for a year.`,1);
     }
   }else{
-    out.push(["warn","?","None of your places overlap yet. That's common. The plan alternates each person's picks so both of you get a turn; try adding a few places you'd each happily say yes to."]);
+    add("warn","?","None of your places overlap yet.","That's common. The plan alternates between each person's picks so both of you get a turn.","Each add two or three places you'd happily say yes to.",1);
   }
   if(r.stretch>r.ceiling){
-    out.push(["blue","$",`Your comfort zones per trip differ: the shared ceiling is ${money(r.ceiling)}, and one of you would go up to ${money(r.stretch)}. The plan treats anything in between as a "stretch" trip worth talking about before booking.`]);
+    const anyStretch=r.items.some(i=>i.fit==="stretch");
+    add("blue","$","Your per-trip limits differ.",`The shared limit is ${money(r.ceiling)} a trip. One of you would go up to ${money(r.stretch)}. Trips in between are marked Stretch, so talk about them before booking.`,anyStretch?`Agree which Stretch trips (${money(r.ceiling)} to ${money(r.stretch)}) are worth it.`:null,3);
   }
   const bigGaps=AXES.filter(([k])=>r.gaps[k].gap>=2).sort((x,y)=>r.gaps[y[0]].gap-r.gaps[x[0]].gap).slice(0,2);
   if(bigGaps.length){
-    out.push(["warn","~",`You travel most differently on <b>${bigGaps.map(a=>`${a[1].toLowerCase()} vs ${a[2].toLowerCase()}`).join("</b> and <b>")}</b>. Settle these trip by trip rather than once; the tips under "How you travel, together" give a starting point.`]);
+    const pair=a=>`${a[1].toLowerCase()} vs ${a[2].toLowerCase()}`;
+    add("warn","~",`You travel most differently on ${bigGaps.map(pair).join(" and ")}.`,`Settle these trip by trip, not once. "How you travel, together" has a starting point for each.`,`Before the first trip, agree how you'll handle ${pair(bigGaps[0])}.`,4);
   }else{
-    out.push(["good","✓",`Your travel styles sit close together on every axis. Most couples disagree on at least one, so the planning conversations should be short.`]);
+    add("good","✓","Your travel styles sit close together.","Most couples disagree on at least one axis, so planning talks should be short.");
   }
   if(r.parked.length){
     const n=r.parked.length;
-    out.push(["blue","⏸",`${n} idea${n>1?"s are":" is"} parked because of a shared limit (flight time, climate, leave). They aren't gone: they come back if you change those limits, or as a once-in-a-decade trip.`]);
+    add("blue","⏸",`${n} idea${s(n)} parked for now.`,`A shared limit rules ${n>1?"them":"it"} out (flight time, climate or leave). Change those limits and ${n>1?"they come":"it comes"} back. See "Parked for now" under the shortlist.`);
   }
   if(r.unscheduled.length&&r.plan.length){
-    const u=r.unscheduled[0];
-    out.push(["blue","→",`<b>${u.label}</b> didn't fit inside ${r.horizon} years at this rate. Adding ${money(Math.max(50,u.cost/(r.horizon*12)))} a month would cover it.`]);
+    const u=r.unscheduled[0],extra=money(Math.max(50,u.cost/(r.horizon*12)));
+    add("blue","→",`${u.label} doesn't fit in ${r.horizon} year${s(r.horizon)} at this rate.`,`Adding ${extra} a month would cover it.`,`Add ${extra} a month if you want ${u.label} in the plan.`,3);
   }
   if(r.days<15){
-    out.push(["warn","◷",`You share ${r.days} days of leave a year, which limits long-haul trips. Public holidays next to weekends stretch it further; long weekends near home keep the rhythm going between big trips.`]);
+    add("warn","◷",`You share ${r.days} days of leave a year.`,"That limits long-haul trips. Public holidays next to weekends stretch it further, and long weekends near home keep the rhythm going between big trips.");
   }
   if(r.sharedInterests.length){
-    out.push(["good","♥",`You both said yes to <b>${r.sharedInterests.join(", ")}</b>. Places strong on ${r.sharedInterests.length>1?"those":"that"} rank higher.`]);
+    add("good","♥",`You both said yes to ${r.sharedInterests.join(", ")}.`,`Places strong on ${r.sharedInterests.length>1?"those":"that"} rank higher.`);
   }
   return out;
 }
@@ -466,7 +687,7 @@ const LOGO=`<svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><
 function header(){
   let right="";
   if(state.view!=="home"){
-    right=state.mode==="shared"?`<span class="pill blue">Plan <span class="mono">${esc(state.code)}</span>${state.seat?` · you're ${state.seat==="A"?"tag A":"tag B"}`:""}</span>`:`<span class="pill">On this device</span>`;
+    right=state.mode==="shared"?`<span class="pill blue">Plan <span class="mono">${esc(state.code)}</span>${state.seat?` · you're ${state.seat==="A"?"tag A":"tag B"}`:""}</span>`:`<span class="pill">Taking turns on this device</span>`;
   }
   return `<header class="top"><button class="brand" data-act="home" aria-label="Two Tickets home">${LOGO}Two Tickets</button><div class="row">${right}</div></header>`;
 }
@@ -474,49 +695,109 @@ function header(){
 function viewHome(){
   const resume=LS.get("last",null);
   const sample=marry(SAMPLE.A,SAMPLE.B,"Sydney");
+  const twoPhones=`<svg width="46" height="30" viewBox="0 0 46 30" aria-hidden="true"><rect x="3" y="3" width="14" height="24" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="29" y="3" width="14" height="24" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M19.5 15h7" stroke="var(--red)" stroke-width="1.6" stroke-dasharray="2 2"/></svg>`;
+  const oneDevice=`<svg width="46" height="30" viewBox="0 0 46 30" aria-hidden="true"><rect x="16" y="3" width="14" height="24" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M11 23C5 18 5 11 11 7M9 4.5l2.4 2.6-3.3 1.2M35 7c6 5 6 12 0 16M37 25.5l-2.4-2.6 3.3-1.2" fill="none" stroke="var(--red)" stroke-width="1.6" stroke-linecap="round"/></svg>`;
+  const seal=`<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><rect x="3" y="8" width="12" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5.5 8V5.8a3.5 3.5 0 0 1 7 0V8" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>`;
   return `${header()}
   <section class="hero">
     <div>
-      <div class="label">For two people, one list</div>
-      <h1>Each of you writes down where you want to go. We merge it into one plan you can afford.</h1>
-      <p class="lede muted">Your answers stay sealed. Neither of you sees the other's list, budget or dealbreakers. You only see the joined result: what you share, what fits, and when you can go.</p>
-      <div class="row" style="margin-top:20px">
-        <button class="primary" data-act="start-shared"${db?"":" disabled title=\"Shared plans need a signed-in viewer\""}>Start a shared plan</button>
-        <button data-act="start-local">Take turns on this device</button>
-      </div>
-      <div class="row" style="margin-top:12px">
-        <input id="join-code" placeholder="Partner's plan code" maxlength="6" style="max-width:190px;text-transform:uppercase" aria-label="Plan code"${db?"":" disabled"}>
-        <button class="ghost" data-act="join"${db?"":" disabled"}>Join</button>
-        ${resume?`<button class="ghost" data-act="resume">Back to plan ${resume.mode==="shared"?esc(resume.code):"on this device"}</button>`:""}
-      </div>
-      ${db?"":`<p class="hint" style="margin-top:8px">Shared plans across two phones need you to be signed in to Claude. Taking turns on one device works anywhere.</p>`}
+      <div class="label">A travel planner for two</div>
+      <h1>Two private wish lists. One travel plan you can both afford.</h1>
+      <p class="lede muted">Each of you fills in a luggage tag: the places you want to see, how you like to travel, your budget, your leave and your dealbreakers. Two Tickets merges both tags into a ranked shortlist and a dated roadmap.</p>
+      <div class="promise">${seal}<p><b>Sealed means sealed.</b> Your partner never sees your list, budget or dealbreakers. The plan shows what you have in common, never who asked for what.</p></div>
     </div>
-    <ol class="how card">
-      <li><div><b>Fill in your tag.</b> <span class="muted">Places with how badly you want them, travel style, budget, leave and dealbreakers.</span></div></li>
-      <li><div><b>Seal it.</b> <span class="muted">Your partner does the same, on their phone or after you hand it over.</span></div></li>
-      <li><div><b>Read the merged plan.</b> <span class="muted">Ranked places, costs for two, a dated roadmap and what to work on.</span></div></li>
-    </ol>
+    <div class="how-wrap card">
+      <div class="label">How it works</div>
+      <ol class="how">
+        <li><div><b>Fill in your tag.</b> <span class="muted">Places and how much you want each one, style, budget, leave, dealbreakers.</span></div></li>
+        <li><div><b>Seal it.</b> <span class="muted">Your partner fills in theirs, on their own phone or on yours after you hand it over.</span></div></li>
+        <li><div><b>Read the merged plan.</b> <span class="muted">Ranked places, costs for two, a dated roadmap and what to talk about.</span></div></li>
+      </ol>
+    </div>
+  </section>
+  <section class="starts" id="start" aria-labelledby="starts-h">
+    <div class="starts-head"><h2 id="starts-h">Pick how you'll fill it in</h2><span class="hint">Apart, use two phones. Together, one device is enough.</span></div>
+    ${resume?`<div class="resume"><span>You have a plan in progress ${resume.mode==="shared"?`with code <b class="mono">${esc(resume.code)}</b>`:"on this device"}.</span><button class="small" data-act="resume">Back to it</button></div>`:""}
+    <div class="starts-grid">
+      <div class="start">
+        <div class="start-top"><span class="kick">On two phones</span>${twoPhones}</div>
+        <h3>Start a shared plan</h3>
+        <ol class="steps"><li>You get a 6-character code.</li><li>Your partner opens this page and joins with it.</li><li>Each of you fills in your tag, wherever and whenever.</li></ol>
+        ${db?"":`<p class="hint">Needs you both to be signed in to Claude. Taking turns on one device works without it.</p>`}
+        <div class="go"><button class="${db?"primary":""}" data-act="start-shared"${db?"":" disabled"}>Start a shared plan</button></div>
+        <div class="join"><label class="label" for="join-code">Got a code from your partner?</label><input id="join-code" placeholder="ABC123" maxlength="6" autocomplete="off"${db?"":" disabled"}><button data-act="join"${db?"":" disabled"}>Join</button></div>
+      </div>
+      <div class="start">
+        <div class="start-top"><span class="kick">On one device</span>${oneDevice}</div>
+        <h3>Take turns</h3>
+        <ol class="steps"><li>You fill in tag A and seal it.</li><li>You hand the phone or laptop over.</li><li>Your partner fills in tag B. The plan appears.</li></ol>
+        <p class="hint">Answers stay in this browser only.</p>
+        <div class="go"><button class="${db?"":"primary"}" data-act="start-local">Take turns on this device</button></div>
+      </div>
+    </div>
   </section>
   <div class="airmail" aria-hidden="true"></div>
-  <div class="banner" style="margin-top:22px"><span><b>Example:</b> what Sam and Riya got, flying from Sydney. Your plan will look like this.</span><button class="small" data-act="start-local">Start ours</button></div>
-  ${resultsHTML(sample,true)}`;
+  <section class="specimen" aria-labelledby="ex-h">
+    <div class="ex-bar"><span class="ex-stamp">Example</span><span class="who"><b>Sam &amp; Riya</b> <span class="muted">· made-up couple<span class="where">, flying from Sydney</span></span></span><a href="#start">Start yours</a></div>
+    <div class="ex-intro">
+      <h2 id="ex-h">Example plan: Sam &amp; Riya</h2>
+      <p class="muted">Sam and Riya are not real. They each filled in a tag on their own, and this is the plan Two Tickets made for them, flying from Sydney. None of it comes from your answers. Yours will have the same parts, built from what the two of you enter.</p>
+    </div>
+    ${resultsHTML(sample,true)}
+    <div class="ex-end">
+      <div class="label">End of example</div>
+      <h2>Now make yours.</h2>
+      <p class="muted">Each of you fills in one tag. You see the merged plan once both are sealed.</p>
+      <div class="row">${db?`<button class="primary" data-act="start-shared">Start a shared plan</button>`:""}<button class="${db?"":"primary"}" data-act="start-local">Take turns on this device</button></div>
+    </div>
+  </section>`;
 }
 
 function seatTag(seat){
   const s=state.plan[seat];
-  const sealed=s&&s.sealed;
-  const mine=state.mode==="local"||state.seat===seat;
+  const sealed=!!(s&&s.sealed);
+  const local=state.mode==="local";
+  const mine=local||state.seat===seat;
+  /* a draft kept only in this browser still counts as started for its owner */
+  const draft=!sealed&&mine?LS.get("draft:"+(local?"local":state.code)+":"+seat,null):null;
+  const name=(s&&s.name)||(draft&&draft.name)||"";
+  const started=!sealed&&!!(s&&s.name||draft);
+  const next=local&&!sealed&&(seat==="A"||!!state.plan.A?.sealed);
+  const flag=state.mode==="shared"&&state.seat===seat?`<span class="you">Yours</span>`:next?`<span class="you">Next up</span>`:"";
+  const status=sealed?`<span class="stamp">Sealed</span>`:started?`<span class="pill warn">Filling in</span>`:`<span class="pill">Waiting</span>`;
+  const go=(label,primary)=>`<div><button class="${primary?"primary":""}" data-act="edit" data-seat="${seat}">${label}</button></div>`;
   let body;
-  if(sealed){body=`<p><b>${esc(s.name||"Someone")}</b> has sealed their answers.</p><p class="hint">Contents hidden from the other tag.</p>`+(mine?`<div class="row"><button class="small ghost" data-act="edit" data-seat="${seat}">${state.mode==="local"?"Re-open (owner only)":"Re-open mine"}</button></div>`:"")}
-  else if(s&&s.name){body=`<p><b>${esc(s.name)}</b> is still filling this in.</p>`+(mine?`<button class="primary" data-act="edit" data-seat="${seat}">Continue</button>`:"")}
-  else{body=`<p class="muted">Empty</p>`+(mine?`<button class="primary" data-act="edit" data-seat="${seat}">Fill in ${state.mode==="local"?"this tag":"my tag"}</button>`:(state.mode==="shared"&&!state.seat?`<button class="primary" data-act="claim" data-seat="${seat}">This is me</button>`:""))}
-  return `<div class="tag ${sealed?"sealed":""}"><span class="hole"></span><div class="label">Tag</div><div class="seat">${seat}</div><div class="row" style="margin:4px 0 10px">${sealed?`<span class="pill good">Sealed</span>`:`<span class="pill">Waiting</span>`}</div><div class="stack">${body}</div></div>`;
+  if(sealed){body=`<p><b>${esc(name||"Someone")}</b> sealed this tag.</p><p class="hint">What's inside stays hidden. Only the merged plan shows.</p>`+(mine?`<div><button class="small ghost" data-act="edit" data-seat="${seat}">${local?`Re-open (${esc(name||"owner")} only)`:"Re-open mine"}</button></div>`:"")}
+  else if(started){body=(name?`<p><b>${esc(name)}</b> started this tag but hasn't sealed it.</p>`:`<p>Started but not sealed yet.</p>`)+(mine?go(`Continue tag ${seat}`,next||!local):"")}
+  else if(mine){body=`<p class="muted">${local?(seat==="A"?"Whoever goes first fills this in.":"For whoever goes second, after tag A is sealed."):"This is your tag. Fill it in alone, then seal it."}</p>`+go(`Fill in tag ${seat}`,next||!local)}
+  else if(state.mode==="shared"&&!state.seat){body=`<p class="muted">Not claimed yet. Pick this one if you're starting with tag ${seat}.</p><div><button class="primary" data-act="claim" data-seat="${seat}">This is me</button></div>`}
+  else{body=`<p class="muted">Waiting for your partner to fill this in.</p>`}
+  return `<div class="tag${sealed?" sealed":""}${flag?" mine":""}"><span class="hole"></span><div class="label">Tag ${flag}</div><div class="tag-id"><div class="seat">${seat}</div>${status}</div><div class="stack">${body}</div></div>`;
+}
+
+/* where the couple is: 1 fill in, 2 seal, 3 see the plan */
+function progressHTML(){
+  const n=["A","B"].filter(k=>state.plan[k]&&state.plan[k].sealed).length;
+  const cur=n===2?3:n===1?2:1;
+  const tick=`<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.5l2.3 2.3 4.7-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  const steps=[["Fill in","Each of you, alone"],["Seal",`${n} of 2 tags sealed`],["See the plan",n===2?"Ready below":"Opens when both are sealed"]];
+  return `<ol class="progress" aria-label="Progress">${steps.map(([t,sub],i)=>{const k=i+1;const cls=k<cur||(k===3&&n===2)?"done":k===cur?"now":"";
+    return `<li class="${cls}"${k===cur?` aria-current="step"`:""}><span class="n">${cls==="done"?tick:k}</span><span><b>${t}</b>${sub}</span></li>`}).join("")}</ol>`;
+}
+function nextStepText(){
+  const A=!!state.plan.A?.sealed,B=!!state.plan.B?.sealed;
+  if(A&&B)return "Both tags are sealed. Your merged plan is below.";
+  if(state.mode==="local"){if(!A&&!B)return "Whoever goes first fills in tag A and seals it. Then pass the device over.";return `Pass the device to your partner. They fill in tag ${A?"B":"A"}.`}
+  if(!state.seat)return "Pick your tag. Press This is me on A or B.";
+  const o=state.seat==="A"?"B":"A";
+  if(!state.plan[state.seat]?.sealed)return `Fill in tag ${state.seat} and seal it.`+(state.plan[o]?.sealed?" Your partner has already sealed theirs.":"");
+  return `Send your partner the plan code. Waiting for tag ${o}.`;
 }
 
 function viewPlan(){
   const both=state.plan.A?.sealed&&state.plan.B?.sealed;
   let share="";
-  if(state.mode==="shared")share=`<div class="card row" style="justify-content:space-between"><div><div class="label">Send this to your partner</div><div class="codebox">${esc(state.code)}</div><p class="hint">They open this same page, choose Join and type the code. The page has to be shared with them with edit access.</p></div><button data-act="copy-code">Copy code</button></div>`;
+  if(state.mode==="shared")share=`<div class="card share"><div><div class="label">Plan code to send your partner</div><div class="codebox">${esc(state.code)}</div><p class="hint">They open this same page, press Join and type the code. Share the page with them as a Contributor so they can fill in their tag.</p></div><button data-act="copy-code">Copy code</button></div>`;
   let result="";
   if(both){
     const r=marry(state.plan.A.answers,state.plan.B.answers,state.plan.home);
@@ -526,12 +807,14 @@ function viewPlan(){
     result=`<div class="section"><div class="card"><h3>The merged plan appears here once both tags are sealed.</h3><p class="muted" style="margin-top:6px">Nothing from either side is shown until then.</p></div></div>`;
   }
   return `${header()}
+  ${progressHTML()}
   <div class="stack">
-    <div class="row" style="justify-content:space-between"><h2>Your travel folder</h2>
-      <label class="row" style="gap:8px"><span class="label">Flying from</span><input id="home" list="hub-list" value="${esc(state.plan.home)}" style="max-width:180px"></label></div>
+    <div class="folder-head"><h2>Your travel folder</h2>
+      <label class="from"><span class="label">Flying from</span><input id="home" list="hub-list" value="${esc(state.plan.home)}" aria-describedby="from-hint"><span class="hint" id="from-hint">Sets flight times and costs.</span></label></div>
+    <p class="next-step${both?" done":""}"><span class="label">${both?"Done":"Next"}</span><span>${nextStepText()}</span></p>
     ${share}
     <div class="tags">${seatTag("A")}${seatTag("B")}</div>
-    ${state.mode==="local"?`<p class="hint">Taking turns: fill in tag A, seal it, then hand the device over for tag B. Answers are kept in this browser only.</p>`:""}
+    ${state.mode==="local"?`<p class="hint">Answers stay in this browser only. Each tag is hidden from the other person once sealed.</p>`:""}
   </div>
   <div class="airmail" style="margin-top:28px" aria-hidden="true"></div>
   ${result}`;
@@ -539,84 +822,159 @@ function viewPlan(){
 
 function viewHandoff(seat){
   const other=seat==="A"?"B":"A";
-  return `${header()}<div class="card handoff"><span class="pill good">Tag ${seat} sealed</span><h2>Hand the device to your partner.</h2><p class="muted">Your answers are hidden. When they're ready, they fill in tag ${other}.</p><div class="row"><button class="primary" data-act="edit" data-seat="${other}">I'm the partner: open tag ${other}</button><button data-act="plan">Back to the folder</button></div></div>`;
+  const name=state.plan[seat]?.name;
+  const mini=(k,sealed)=>`<div class="tag mini${sealed?" sealed":""}"><span class="hole"></span><div class="label">Tag</div><div class="tag-id"><div class="seat">${k}</div>${sealed?`<span class="stamp press">Sealed</span>`:`<span class="pill">Waiting</span>`}</div></div>`;
+  return `${header()}${progressHTML()}<div class="card handoff"><div class="handoff-grid">
+    <div class="handoff-tags" aria-hidden="true">${mini(seat,true)}${mini(other,false)}</div>
+    <div class="handoff-copy"><div class="label">Tag ${seat} sealed${name?` by ${esc(name)}`:""}</div><h2>Pass the device to your partner.</h2>
+      <p class="muted">Your answers are locked away and off the screen. Your partner fills in tag ${other} next. The merged plan opens once both tags are sealed.</p>
+      <div class="row"><button class="primary" data-act="edit" data-seat="${other}">I'm the partner: open tag ${other}</button><button class="ghost" data-act="plan">Back to the folder</button></div></div>
+  </div></div>`;
 }
 
 function viewForm(){
-  const a=state.draft, seat=state.editing;
+  const a=state.draft, seat=state.editing, other=seat==="A"?"B":"A", local=state.mode==="local";
+  const WANT_TIP=["","Only if it fits","High on my list","I'd be sad never to go"];
   const places=a.places.map((p,i)=>`<div class="place-row" data-i="${i}">
       <input list="dest-list" data-place="${i}" value="${esc(p.name)}" placeholder="${["e.g. Japan","e.g. Patagonia","e.g. Amalfi Coast","Anywhere else"][Math.min(i,3)]}" aria-label="Place ${i+1}">
-      <span class="want" role="group" aria-label="How much">${[1,2,3].map(w=>`<button type="button" data-want="${i}" data-w="${w}" aria-pressed="${p.want===w}">${WANT[w]}</button>`).join("")}</span>
-      <button type="button" class="small ghost" data-act="rm-place" data-i="${i}" aria-label="Remove">✕</button>
+      <span class="want" role="group" aria-label="How much you want place ${i+1}">${[1,2,3].map(w=>`<button type="button" data-want="${i}" data-w="${w}" aria-pressed="${p.want===w}" title="${WANT_TIP[w]}">${WANT[w]}</button>`).join("")}</span>
+      <button type="button" class="small ghost" data-act="rm-place" data-i="${i}" aria-label="Remove place ${i+1}">✕</button>
     </div>`).join("");
-  const sliders=AXES.map(([k,lo,hi])=>`<div class="slider"><span>${lo}</span><input type="range" min="1" max="5" step="1" id="s-${k}" data-style="${k}" value="${a.style[k]}" aria-label="${lo} to ${hi}"><span>${hi}</span></div>`).join("");
+  const sliders=AXES.map(([k,lo,hi])=>{const v=a.style[k],t=leanText(v,lo,hi);return `<div class="slider"><span class="end${v<3?" on":""}">${lo}</span><input type="range" min="1" max="5" step="1" id="s-${k}" data-style="${k}" value="${v}" aria-label="${lo} or ${hi}" aria-valuetext="${t}"><span class="end${v>3?" on":""}">${hi}</span><output for="s-${k}">${t}</output></div>`}).join("");
   const chips=INTERESTS.map(t=>`<label class="chip"><input type="checkbox" data-interest="${t}" ${a.interests.includes(t)?"checked":""}>${t}</label>`).join("");
   const avoids=AVOIDS.map(([t,l])=>`<label class="chip"><input type="checkbox" data-avoid="${t}" ${a.avoid.includes(t)?"checked":""}>${l}</label>`).join("");
+  const step=(n,title,hint,body)=>`<section class="fstep" aria-labelledby="fs-${n}"><div class="fstep-h"><span class="fstep-n" aria-hidden="true">${n}</span><h3 id="fs-${n}">${title}</h3></div>${hint?`<p class="hint">${hint}</p>`:""}${body}</section>`;
+  const numField=(id,label,hint,attrs,v)=>`<div class="field"><label class="label" for="${id}">${label}</label><input id="${id}" type="number" ${attrs} value="${v}" aria-describedby="${id}-h"><span class="hint" id="${id}-h">${hint}</span></div>`;
+  const otherSealed=!!state.plan[other]?.sealed;
+  const after=otherSealed?"Your merged plan opens straight after.":local?`Then pass the device over for tag ${other}.`:`Your partner only sees that tag ${seat} is sealed.`;
+  const lock=`<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><rect x="3" y="8" width="12" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5.5 8V5.8a3.5 3.5 0 0 1 7 0V8" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>`;
+  const seal=`<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="7.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2.2 1.4"/><circle cx="9" cy="9" r="3.6" fill="currentColor"/></svg>`;
   return `${header()}
+  ${progressHTML()}
+  <div class="form-nav"><button type="button" class="small ghost" data-act="form-back">← Back to the folder</button><span class="hint">Going back keeps your draft on this device.</span></div>
   <form class="form card" id="answers" autocomplete="off">
-    <div class="row" style="justify-content:space-between"><div><div class="label">Tag ${seat} · private</div><h2>Where would you go?</h2></div><span class="pill red">Hidden from your partner</span></div>
-    <div class="field"><label class="label" for="f-name">Your first name</label><input id="f-name" value="${esc(a.name)}" maxlength="30" required></div>
-    <div class="field"><span class="label">Places</span><p class="hint">Countries, regions or cities. "Must" means you'd be sad to never go.</p>${places}
-      ${a.places.length<10?`<div><button type="button" class="small" data-act="add-place">Add a place</button></div>`:""}</div>
-    <div class="field"><span class="label">How you like to travel</span><div class="stack">${sliders}</div></div>
-    <div class="field"><span class="label">What you want more of</span><div class="chips">${chips}</div></div>
-    <div class="field"><span class="label">Dealbreakers</span><p class="hint">Places that clash with a dealbreaker get parked, with a reason that doesn't name you.</p><div class="chips">${avoids}</div></div>
-    <div class="grid3">
-      <div class="field"><label class="label" for="f-budget">Max per trip, for two (USD)</label><input id="f-budget" type="number" min="200" step="100" value="${a.budget}"></div>
-      <div class="field"><label class="label" for="f-savings">You can put aside / month</label><input id="f-savings" type="number" min="0" step="25" value="${a.savings}"></div>
-      <div class="field"><label class="label" for="f-days">Leave days / year</label><input id="f-days" type="number" min="2" max="60" value="${a.days}"></div>
-      <div class="field"><label class="label" for="f-flight">Longest flight you'll sit (hours)</label><input id="f-flight" type="number" min="1" max="40" value="${a.maxFlight}"></div>
-      <div class="field"><label class="label" for="f-horizon">Plan ahead (years)</label><input id="f-horizon" type="number" min="1" max="10" value="${a.horizon}"></div>
-    </div>
-    <div class="row" style="justify-content:flex-end"><button type="button" class="ghost" data-act="save-draft">Save, keep editing</button><button type="submit" class="primary">Seal my answers</button></div>
+    <div class="form-head"><div class="label">Tag ${seat} · private</div><h2>Where would you go?</h2></div>
+    <div class="privacy">${lock}<div><b>Hidden from your partner</b><ul>
+      <li>They never see your places, sliders, dealbreakers or numbers.</li>
+      <li>The plan shows which places you both picked. Everything else is labelled "One of you".</li>
+      <li>Money and leave only appear as shared totals and ranges, never with a name on them.</li></ul></div></div>
+    <div class="field"><label class="label" for="f-name">Your first name</label><input id="f-name" value="${esc(a.name)}" maxlength="30" required aria-describedby="f-name-h"><span class="hint" id="f-name-h">Shown on tag ${seat} so your partner knows you're done. Nothing else is.</span></div>
+    ${step(1,"Places","Countries, regions or cities. Start typing for suggestions, then say how much you want each one.",
+      `<p class="want-key"><span><b>Curious</b> only if it fits</span><span><b>Want</b> high on my list</span><span><b>Must</b> I'd be sad never to go</span></p><div class="places">${places}</div>
+      ${a.places.length<10?`<div><button type="button" class="small" data-act="add-place">Add a place</button></div>`:""}`)}
+    ${step(2,"Style","Drag toward the side that sounds more like you. The middle means you don't mind.",`<div class="stack">${sliders}</div>`)}
+    ${step(3,"Interests","Pick anything you want more of. Places that offer them move up.",`<div class="chips">${chips}</div>`)}
+    ${step(4,"Dealbreakers","Places that clash get parked. The reason shown never says whose dealbreaker it was.",`<div class="chips">${avoids}</div>`)}
+    ${step(5,"Money &amp; time","Your own numbers. The plan combines them with your partner's.",`<div class="grid3 money">
+      ${numField("f-budget","Max per trip for two (USD)","Flights, stays and food.",`min="200" step="100"`,a.budget)}
+      ${numField("f-savings","Saved per month (USD)","Your share of a travel fund.",`min="0" step="25"`,a.savings)}
+      ${numField("f-days","Leave days a year","Days off you'd spend on trips.",`min="2" max="60"`,a.days)}
+      ${numField("f-flight","Longest flight (hours)","One way, door to door.",`min="1" max="40"`,a.maxFlight)}
+      ${numField("f-horizon","Plan ahead (years)","How far the roadmap runs.",`min="1" max="10"`,a.horizon)}
+    </div>`)}
+    <div class="seal-bar"><div><b>Ready? Seal tag ${seat}.</b><p class="hint">Sealing locks your answers away. ${after} You can re-open it later.</p></div>
+      <div class="row"><button type="button" class="ghost" data-act="save-draft">Save, keep editing</button><button type="submit" class="seal-btn">${seal}Seal my answers</button></div></div>
   </form>`;
 }
+function leanText(v,lo,hi){return v<=1?`All the way: ${lo}`:v===2?`Leaning: ${lo}`:v===3?"Happy either way":v===4?`Leaning: ${hi}`:`All the way: ${hi}`}
 
-function monthsBar(ms){return `<span class="months" aria-label="Best months: ${ms.map(m=>MONTH[m-1]).join(", ")}">${MONTH.map((_,i)=>`<i class="${ms.includes(i+1)?"on":""}"></i>`).join("")}</span>`}
+function monthsBar(ms){const L="JFMAMJJASOND";return `<span class="months" role="img" aria-label="Best months: ${ms.map(m=>MONTH[m-1]).join(", ")}">${MONTH.map((_,i)=>`<i class="${ms.includes(i+1)?"on":""}" data-m="${L[i]}"></i>`).join("")}</span>`}
 function fitPill(it,r){
-  if(it.fit==="fits")return `<span class="pill good">Within budget</span>`;
-  if(it.fit==="stretch")return `<span class="pill warn">Stretch</span>`;
-  return `<span class="pill red">Save ${Number.isFinite(it.monthsToSave)?it.monthsToSave+" mo":"up"}</span>`;
+  if(it.fit==="fits")return `<span class="pill good r-fit" title="Costs no more than your shared limit per trip">Within budget</span>`;
+  if(it.fit==="stretch")return `<span class="pill warn r-fit" title="Over your shared limit, within the higher one">Stretch</span>`;
+  return `<span class="pill red r-fit" title="Over both limits: months of saving it takes">Save ${Number.isFinite(it.monthsToSave)?it.monthsToSave+" mo":"up"}</span>`;
 }
 function whoPill(it,example,names){
-  if(it.both)return `<span class="pill blue">Both of you</span>`;
-  return `<span class="pill">One of you</span>`;
+  if(it.both)return `<span class="pill blue r-who both">Both of you</span>`;
+  return `<span class="pill r-who one">One of you</span>`;
 }
 function destRow(it,r,example){
+  const sched=r.plan.find(p=>p.key===it.key);
+  const when=it.reasons.length?"":sched?`<span class="r-planned">Planned ${MONTH[sched.date.getMonth()]} ${sched.date.getFullYear()}</span>`:`<span>Not in the roadmap yet</span>`;
   return `<div class="dest"><div class="code">${esc(it.code)}</div>
     <div style="min-width:0"><div class="row" style="gap:8px"><h3>${esc(it.label)}</h3>${whoPill(it,example,r.names)}</div>
-      <div class="meta"><span>${it.tripDays} days</span><span>${it.hours<0.5?"no flight":"~"+Math.round(it.hours)+"h flight"}</span><span>${monthsBar(it.months)}</span>${it.reasons.length?`<span>Parked: ${esc(it.reasons.join("; "))}</span>`:""}</div></div>
-    <div class="right"><span class="mono" style="font-weight:600">${money(it.cost)}</span>${it.reasons.length?"":fitPill(it,r)}<span class="score">match ${it.score}</span></div></div>`;
+      <div class="meta"><span>${it.tripDays} days</span><span>${it.hours<0.5?"no flight":"~"+Math.round(it.hours)+"h flight"}</span>${when}<span class="r-best"><span class="r-best-l">Best months</span>${monthsBar(it.months)}</span>${it.reasons.length?`<span class="r-parked">Parked: ${esc(it.reasons.join("; "))}</span>`:""}</div></div>
+    <div class="right"><span class="r-cost"><span class="mono">${money(it.cost)}</span> <span class="muted">for two</span></span>${it.reasons.length?"":fitPill(it,r)}<span class="score">Match ${it.score}</span></div></div>`;
 }
 
 function resultsHTML(r,example){
-  const years={};
-  r.plan.forEach(p=>{(years[p.date.getFullYear()]=years[p.date.getFullYear()]||[]).push(p)});
-  const totalPlanned=r.plan.reduce((s,p)=>s+p.cost,0);
-  const tl=Object.keys(years).length?Object.entries(years).map(([y,ts])=>`<div class="tl-year"><div class="yr">${y}</div><div class="tl-trips">${ts.map(t=>`<div class="tl-trip"><span class="when">${MONTH[t.date.getMonth()]}</span><div style="min-width:0"><b>${esc(t.label)}</b> <span class="muted">· ${t.tripDays} days · ${t.both?"shared dream":"a gift from one of you"}</span></div><span class="mono">${money(t.cost)}</span></div>`).join("")}</div></div>`).join(""):`<p class="muted">No trip fits yet with the current savings and leave.</p>`;
-  const blend=AXES.map(([k,lo,hi,tip])=>{const g=r.gaps[k];const pct=v=>((v-1)/4*100).toFixed(1)+"%";
-    return `<div><div class="axis"><span>${lo}</span><div class="track"><div class="range" style="left:${pct(g.lo)};width:calc(${pct(g.hi)} - ${pct(g.lo)})"></div><div class="mid" style="left:${pct(r.style[k])}"></div></div><span>${hi}</span></div>${g.gap>=2?`<p class="tip" style="margin-top:6px">${tip}</p>`:""}</div>`}).join("");
-  const ins=insightsFor(r).map(([c,i,t])=>`<li><span class="ic ${c}" aria-hidden="true">${i}</span><div>${t}</div></li>`).join("");
+  const ym=d=>MONTH[d.getMonth()]+" "+d.getFullYear(), s=n=>n===1?"":"s";
+  const now=new Date(), next=r.plan[0], later=r.plan.slice(1,3);
+  const totalPlanned=r.plan.reduce((t,p)=>t+p.cost,0);
+  const notes=insightsFor(r);
+  const todos=notes.filter(n=>n.todo).sort((a,b)=>a.pri-b.pri).slice(0,2);
+  const shared=r.items.filter(i=>i.both), sharedParked=r.parked.filter(i=>i.both);
+  const listed=r.items.length+r.parked.length+r.unknown.length;
+
+  // Summary: headline, then what you share, the next trip, and what to do.
+  const headline=next?`${r.plan.length} trip${s(r.plan.length)} in ${r.horizon} year${s(r.horizon)}, starting with ${esc(next.label)} in ${ym(next.date)}.`:`No trip fits the plan yet. Here's what to change.`;
+  const wantBox=`<div class="r-box r-want"><div class="label">You both want most</div>
+    ${shared.length?`<ol class="r-want-list">${shared.slice(0,3).map(i=>{const p=r.plan.find(x=>x.key===i.key);return `<li><span class="r-mini-code">${esc(i.code)}</span><b>${esc(i.label)}</b><span class="r-want-when">${p?ym(p.date):"not scheduled"}</span></li>`}).join("")}</ol>`
+      :`<p>None of your places overlap yet. The plan gives each of you turns instead.</p>`}
+    ${sharedParked.length?`<p class="hint">Also on both lists, but parked: ${sharedParked.map(i=>esc(i.label)).join(", ")}.</p>`:""}
+    ${r.sharedInterests.length?`<p class="hint">You both want more ${esc(r.sharedInterests.join(", "))}.</p>`:""}</div>`;
+  let nextBox;
+  if(next){
+    const away=(next.date.getFullYear()-now.getFullYear())*12+next.date.getMonth()-now.getMonth();
+    const saveMo=r.monthly?Math.ceil(next.cost/r.monthly):0;
+    nextBox=`<div class="r-ticket"><div class="r-stub" aria-hidden="true"><span>${esc(next.code)}</span></div>
+      <div class="r-ticket-body"><div class="label">Next trip${away>0?` · in ${away} month${s(away)}`:""}</div>
+        <h3 class="r-ticket-name">${esc(next.label)}</h3>
+        <div class="r-ticket-facts"><span><span class="r-k">When</span><b class="mono">${ym(next.date)}</b></span><span><span class="r-k">Length</span><b class="mono">${next.tripDays} days</b></span><span><span class="r-k">Cost for two</span><b class="mono">${money(next.cost)}</b></span></div>
+        <div class="row" style="gap:6px">${fitPill(next,r)}${whoPill(next,example,r.names)}${saveMo?`<span class="hint">about ${saveMo} month${s(saveMo)} of saving</span>`:""}</div>
+        ${later.length?`<p class="hint r-then">Then ${later.map(t=>`<b>${esc(t.label)}</b> ${ym(t.date)}`).join(", ")}</p>`:""}</div></div>`;
+  }else{
+    nextBox=`<div class="r-ticket r-ticket-empty"><div class="r-stub" aria-hidden="true"><span>···</span></div><div class="r-ticket-body"><div class="label">Next trip</div><h3 class="r-ticket-name">Not yet</h3><p class="muted">No place on your list fits your savings, leave and limits within ${r.horizon} year${s(r.horizon)}.</p></div></div>`;
+  }
+  const todoBox=`<div class="r-box r-todo"><div class="label">Do these next</div><ol>${todos.map(t=>`<li>${t.todo}</li>`).join("")||"<li>Nothing urgent. Enjoy planning.</li>"}</ol></div>`;
+
+  // Roadmap: a rail with year markers and one stop per trip.
+  let lastY=null;
+  const tl=r.plan.length?`<ol class="r-tl">${r.plan.map((t,i)=>{const y=t.date.getFullYear();const yr=y!==lastY?`<li class="r-tl-year"><span>${y}</span></li>`:"";lastY=y;
+    return `${yr}<li class="r-tl-stop ${t.both?"both":"one"}${i===0?" is-next":""}"><span class="r-tl-when mono">${MONTH[t.date.getMonth()]}</span><div style="min-width:0"><b>${esc(t.label)}</b>${i===0?` <span class="r-next-flag">Next</span>`:""}<div class="hint">${t.tripDays} days · ${t.both?"both of you":"one of you"}</div></div><span class="mono r-tl-cost">${money(t.cost)}</span></li>`}).join("")}</ol>`
+    :`<p class="muted">No trip fits yet with the current savings and leave.</p>`;
+  const notIn=r.unscheduled.length?`<p class="hint">Not in this ${r.horizon}-year window: ${r.unscheduled.map(u=>esc(u.label)).join(", ")}.</p>`:"";
+
+  // Style blend: band = range between your answers, dot = the plan.
+  const blend=AXES.map(([k,lo,hi,tip])=>{const g=r.gaps[k],v=r.style[k];const pct=x=>((x-1)/4*100).toFixed(1)+"%";
+    const lean=v<=1.75?`Plan: strongly ${lo.toLowerCase()}`:v<2.75?`Plan leans ${lo.toLowerCase()}`:v<=3.25?"Plan: in the middle":v<4.25?`Plan leans ${hi.toLowerCase()}`:`Plan: strongly ${hi.toLowerCase()}`;
+    return `<div class="r-axis${g.gap>=2?" wide":""}"><div class="axis"><span>${lo}</span><div class="track" role="img" aria-label="${lo} to ${hi}. ${lean}."><div class="range" style="left:${pct(g.lo)};width:calc(${pct(g.hi)} - ${pct(g.lo)})"></div><div class="mid" style="left:${pct(v)}"></div></div><span>${hi}</span></div>
+      <div class="r-axis-note"><span>${lean}</span>${g.gap>=2?`<span class="pill warn">Wide gap</span>`:g.gap===0?`<span class="r-same">Same answer</span>`:""}</div>${g.gap>=2?`<p class="tip">${tip}</p>`:""}</div>`}).join("");
+  const ins=notes.map(n=>`<li><span class="ic ${n.tone}" aria-hidden="true">${n.ic}</span><div><b class="r-lead">${n.lead}</b> <span class="r-detail">${n.detail}</span></div></li>`).join("");
+  const fitKey=`<div class="r-key" aria-label="How to read the shortlist">
+      <span><span class="pill blue r-who both">Both of you</span><span class="pill r-who one">One of you</span> who listed it. Never which of you.</span>
+      <span><span class="pill good">Within budget</span> up to your shared limit, ${money(r.ceiling)} a trip.</span>
+      ${r.stretch>r.ceiling?`<span><span class="pill warn">Stretch</span> over that, up to ${money(r.stretch)}.</span>`:""}
+      <span><span class="pill red">Save N mo</span> over every limit. Months of saving it takes at ${money(r.monthly)} a month.</span>
+      <span>${monthsBar([1,2,3,12])} best months, January to December.</span>
+      <span><span class="score">Match</span> how strongly your lists and interests point there, out of 100.</span></div>`;
   const unk=r.unknown.length?`<p class="hint">Not in our reference list yet, so no cost estimate: ${r.unknown.map(u=>esc(u.label)).join(", ")}. Try the country or a nearby region.</p>`:"";
   const claudeBlock=example?"":`<div class="section"><div class="row" style="justify-content:space-between"><h2>Ask Claude</h2>${state.sampleOK?`<button data-act="ask-claude" ${state.claude.busy?"disabled":""}>${state.claude.busy?"Thinking…":state.claude.text?"Ask again":"Get a second opinion"}</button>`:""}</div>
     ${state.sampleOK?`<p class="hint">Sends only the merged plan above (no one's individual answers) and asks for practical next steps.</p>`:`<p class="hint">Asking Claude isn't available in this view.</p>`}
     ${state.claude.text?`<div class="card claude-out">${esc(state.claude.text)}</div>`:""}${state.claude.err?`<p class="hint" style="color:var(--red)">${esc(state.claude.err)}</p>`:""}</div>`;
   return `
-  <div class="section">
+  <div class="section r-summary">
+    <div class="r-headline"><div class="label">${example?"Their":"Your"} merged plan</div><h2>${headline}</h2></div>
+    <div class="r-glance">${wantBox}${nextBox}${todoBox}</div>
     <div class="kpis">
-      <div class="kpi"><div class="label">Shared dreams</div><div class="v">${r.sharedCount}</div><div class="s">places you both listed</div></div>
-      <div class="kpi"><div class="label">Travel fund</div><div class="v">${money(r.monthly)}</div><div class="s">a month, together</div></div>
-      <div class="kpi"><div class="label">Trips planned</div><div class="v">${r.plan.length}</div><div class="s">over ${r.horizon} yr · ${money(totalPlanned)}</div></div>
-      <div class="kpi"><div class="label">Style match</div><div class="v">${r.compat}%</div><div class="s">${r.compat>=80?"very close":r.compat>=60?"some give and take":"plan the compromises"}</div></div>
+      <div class="kpi"><div class="label">On both lists</div><div class="v">${r.sharedCount}<small> of ${listed}</small></div><div class="s">places you both named</div></div>
+      <div class="kpi"><div class="label">Saved each month</div><div class="v">${money(r.monthly)}</div><div class="s">together, into the fund</div></div>
+      <div class="kpi"><div class="label">Trips that fit</div><div class="v">${r.plan.length}</div><div class="s">in ${r.horizon} year${s(r.horizon)} · ${money(totalPlanned)} total</div></div>
+      <div class="kpi"><div class="label">Travel styles</div><div class="v">${r.compat}%<small> alike</small></div><div class="s">${r.compat>=80?"very close":r.compat>=60?"some give and take":"plan the compromises"}</div></div>
     </div>
   </div>
-  <div class="section"><h2>What to work on</h2><ul class="insights">${ins}</ul></div>
-  <div class="section"><div class="row" style="justify-content:space-between"><h2>Your roadmap</h2><span class="hint">Starts next month · shared budget ${money(r.ceiling)}/trip · ${r.days} leave days/yr</span></div><div class="card timeline">${tl}</div></div>
-  <div class="section"><h2>The shortlist</h2><p class="hint">Costs are for two from ${esc(r.home.name)}: return economy flights plus ${r.comfortMult<0.95?"budget":r.comfortMult>1.4?"comfortable":"mid-range"} stays, food and local transport. Treat them as planning numbers, not quotes.</p>
+  <div class="section"><div class="r-head"><h2>Your roadmap</h2><p class="hint">Each trip lands in a good month for the place, once the fund covers it and you both have the leave. Starts next month.</p></div>
+    <div class="r-key"><span><i class="r-dot both"></i>Both of you listed it</span><span><i class="r-dot one"></i>One of you listed it</span><span class="mono">${money(r.ceiling)} shared limit a trip · ${r.days} leave days a year</span></div>
+    <div class="card timeline">${tl}</div>${notIn}</div>
+  <div class="section"><div class="r-head"><h2>The shortlist</h2><p class="hint">Ranked by match. Costs are for two from ${esc(r.home.name)}: return economy flights plus ${r.comfortMult<0.95?"budget":r.comfortMult>1.4?"comfortable":"mid-range"} stays, food and local transport. Treat them as planning numbers, not quotes.</p></div>
+    ${fitKey}
     <div class="dest-list">${r.items.map(i=>destRow(i,r,example)).join("")||`<p class="muted">No places could be ranked yet.</p>`}</div>${unk}
     ${r.parked.length?`<details class="card"><summary>Parked for now (${r.parked.length})</summary><div class="dest-list" style="margin-top:12px">${r.parked.map(i=>destRow(i,r,example)).join("")}</div></details>`:""}
   </div>
-  <div class="section"><h2>How you travel, together</h2><p class="hint">The shaded band spans both of you; the dot is where the plan sits. Who is at which end isn't shown.</p><div class="card blend">${blend}</div></div>
+  <div class="section"><div class="r-head"><h2>How you travel, together</h2><p class="hint">Each line runs between two ways to travel. Nobody's answer is shown, only how far apart you are.</p></div>
+    <div class="r-key"><span><i class="r-band"></i>The span between your two answers</span><span><i class="r-dot both"></i>Where the plan sits</span></div>
+    <div class="card blend">${blend}</div></div>
+  <div class="section"><div class="r-head"><h2>Notes on your plan</h2><p class="hint">The reasoning behind the summary.</p></div><ul class="insights">${ins}</ul></div>
   ${claudeBlock}`;
 }
 
@@ -667,6 +1025,7 @@ document.addEventListener("click",async ev=>{
   else if(act==="join"){const c=(document.getElementById("join-code").value||"").toUpperCase().replace(/[^A-Z0-9]/g,"");if(c.length!==6){toast("Plan codes are 6 letters and numbers.");return}openPlan("shared",c)}
   else if(act==="resume"){const l=LS.get("last",null);if(l)openPlan(l.mode,l.code)}
   else if(act==="plan"){state.view="plan";render()}
+  else if(act==="form-back"){readForm();LS.set(draftKey(),state.draft);state.view="plan";render();window.scrollTo(0,0);toast(`Draft kept. Tag ${state.editing} isn't sealed yet.`)}
   else if(act==="claim"){state.seat=b.dataset.seat;LS.set("seat:"+state.code,state.seat);render()}
   else if(act==="copy-code"){try{await navigator.clipboard.writeText(state.code);toast("Code copied")}catch(e){toast("Select the code and copy it: "+state.code)}}
   else if(act==="edit"){
@@ -684,8 +1043,8 @@ document.addEventListener("click",async ev=>{
 document.addEventListener("submit",async ev=>{
   if(ev.target.id!=="answers")return;ev.preventDefault();readForm();
   const a=state.draft;
-  if(!a.name){toast("Add your first name so your partner knows you've sealed.");return}
-  if(!a.places.some(p=>p.name.trim())){toast("Add at least one place.");return}
+  if(!a.name){toast("Add your first name. It's the only thing your partner sees on your tag.");document.getElementById("f-name")?.focus();return}
+  if(!a.places.some(p=>p.name.trim())){toast("Add at least one place in step 1 before sealing.");document.querySelector("[data-place]")?.focus();return}
   a.places=a.places.filter(p=>p.name.trim());
   const ok=await saveSeat(state.editing,{name:a.name,sealed:true,answers:a,updatedAt:Date.now()});
   if(!ok)return;
@@ -694,7 +1053,15 @@ document.addEventListener("submit",async ev=>{
   const other=seat==="A"?"B":"A";
   if(state.mode==="local"&&!(state.plan[other]&&state.plan[other].sealed)){state.handoffSeat=seat;state.view="handoff"}
   else state.view="plan";
-  render();window.scrollTo(0,0);toast("Sealed");
+  render();window.scrollTo(0,0);toast(`Tag ${seat} sealed. Your answers are hidden.`);
+});
+/* style sliders: show the current position in words as it moves */
+document.addEventListener("input",ev=>{
+  const t=ev.target;if(!t.dataset||t.dataset.style==null)return;
+  const ax=AXES.find(x=>x[0]===t.dataset.style),box=t.closest(".slider");if(!ax||!box)return;
+  const v=+t.value,txt=leanText(v,ax[1],ax[2]);
+  const o=box.querySelector("output");if(o)o.textContent=txt;t.setAttribute("aria-valuetext",txt);
+  box.querySelectorAll(".end").forEach((e,i)=>e.classList.toggle("on",i===0?v<3:v>3));
 });
 document.addEventListener("change",ev=>{
   if(ev.target.id==="home"){const h=findHub(ev.target.value);if(!h){toast("Pick a city from the list so flight estimates work.");ev.target.value=state.plan.home;return}saveHome(h.name);render()}
