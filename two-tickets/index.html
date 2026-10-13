@@ -301,7 +301,7 @@ details summary{cursor:pointer;font-weight:600}
 /* folder */
 .folder-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px 20px;flex-wrap:wrap}
 .from{display:grid;gap:4px}
-.from input{width:200px;max-width:100%}
+.from input,.from select{width:220px;max-width:100%}
 .next-step{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;border-left:3px solid var(--blue);background:var(--card);border-radius:0 8px 8px 0;padding:10px 14px;font-size:14.5px}
 .next-step .label{color:var(--blue)}
 .next-step.done{border-left-color:var(--good)}
@@ -363,13 +363,22 @@ details summary{cursor:pointer;font-weight:600}
 }
 @media (max-width:480px){.grid3.money{grid-template-columns:1fr;gap:12px}}
 
+/* place suggestions, browse list, departing from */
+.ac{position:relative;min-width:0}
+.ac-list{position:absolute;z-index:5;left:0;right:0;top:calc(100% + 4px);margin:0;padding:4px;list-style:none;background:var(--card);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px color-mix(in srgb,var(--ink) 18%,transparent);max-height:260px;overflow-y:auto}
+.ac-list li{padding:8px 10px;border-radius:6px;cursor:pointer;font-size:14px}
+.ac-list li:hover,.ac-list li.on{background:var(--soft)}
+.ac-list li.keep{color:var(--muted);border-top:1px solid var(--line);margin-top:2px}
+.browse{margin-top:6px}
+.browse summary{font-size:14px;color:var(--blue)}
+.browse-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;max-height:240px;overflow-y:auto}
+.unk{margin-top:10px}
+
 </style>
 
 <div class="wrap" id="app"></div>
 <div class="toast" id="toast" hidden></div>
 
-<datalist id="dest-list"></datalist>
-<datalist id="hub-list"></datalist>
 
 <script>
 "use strict";
@@ -479,8 +488,9 @@ São Paulo|-23.5|-46.6
 Buenos Aires|-34.6|-58.4`;
 
 function parseMonths(s){const out=new Set();for(const part of s.split(",")){const [a,b]=part.split("-").map(Number);if(!b){out.add(a);continue}let m=a;for(let i=0;i<12;i++){out.add(m);if(m===b)break;m=m%12+1}}return [...out]}
-const DESTS = DEST_RAW.trim().split("\n").map(l=>{const [name,code,lat,lon,cost,months,tags,minDays]=l.split("|");return {name,code,lat:+lat,lon:+lon,cost:+cost,months:parseMonths(months),tags:tags.split(","),minDays:+minDays}});
-const HUBS = HUBS_RAW.trim().split("\n").map(l=>{const [name,lat,lon]=l.split("|");return {name,lat:+lat,lon:+lon}});
+const BY_NAME=(a,b)=>a.name.localeCompare(b.name);
+const DESTS = DEST_RAW.trim().split("\n").map(l=>{const [name,code,lat,lon,cost,months,tags,minDays]=l.split("|");return {name,code,lat:+lat,lon:+lon,cost:+cost,months:parseMonths(months),tags:tags.split(","),minDays:+minDays}}).sort(BY_NAME);
+const HUBS = HUBS_RAW.trim().split("\n").map(l=>{const [name,lat,lon]=l.split("|");return {name,lat:+lat,lon:+lon}}).sort(BY_NAME);
 const norm=s=>String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim();
 const ALIASES={"tokyo":"Japan","osaka":"Kyoto","korea":"South Korea","seoul":"South Korea","hanoi":"Vietnam","ho chi minh":"Vietnam","bangkok":"Thailand","phuket":"Thailand","chiang mai":"Thailand","angkor wat":"Cambodia","siem reap":"Cambodia","rajasthan":"India","everest":"Nepal","petra":"Jordan","istanbul":"Turkey","cappadocia":"Turkey","cairo":"Egypt","marrakech":"Morocco","serengeti":"Tanzania","zanzibar":"Tanzania","kilimanjaro":"Tanzania","safari":"Kenya","cape town":"South Africa","lapland":"Finnish Lapland","northern lights":"Finnish Lapland","fjords":"Norway","rome":"Italy","tuscany":"Italy","venice":"Italy","florence":"Italy","positano":"Amalfi Coast","barcelona":"Spain","lisbon":"Portugal","provence":"France (Provence)","santorini":"Greece","greek islands":"Greece","dubrovnik":"Croatia","nyc":"New York","san francisco":"California","los angeles":"California","maui":"Hawaii","yosemite":"US National Parks","grand canyon":"US National Parks","banff":"Canadian Rockies","cancun":"Yucatán","tulum":"Yucatán","machu picchu":"Peru","rio":"Brazil","rio de janeiro":"Brazil","galapagos":"Galápagos","cartagena":"Colombia","nz":"New Zealand","uluru":"Uluru & the Red Centre","great barrier reef":"Great Barrier Reef","cairns":"Great Barrier Reef","swiss alps":"Switzerland","edinburgh":"Scotland","highlands":"Scotland"};
 function findDest(q){const n=norm(q);if(!n)return null;let d=DESTS.find(x=>norm(x.name)===n||norm(x.code)===n);if(d)return d;if(ALIASES[n])return DESTS.find(x=>x.name===ALIASES[n]);d=DESTS.find(x=>norm(x.name).startsWith(n)&&n.length>=4);return d||null}
@@ -648,7 +658,7 @@ function insightsFor(r){
 ---------------------------------------------------------------------------- */
 const LS={get(k,d){try{const v=localStorage.getItem("tt:"+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem("tt:"+k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem("tt:"+k)}catch(e){}}};
 let db=null,me=null;
-const state={view:"home",mode:null,code:null,seat:null,plan:{home:"Sydney",A:null,B:null},draft:null,editing:null,claude:{busy:false,text:"",err:""},unsub:[]};
+const state={view:"home",mode:null,code:null,seat:null,plan:{home:"",airport:"Sydney",A:null,B:null},draft:null,editing:null,claude:{busy:false,text:"",err:""},unsub:[]};
 
 function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>t.hidden=true,2600)}
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
@@ -660,7 +670,7 @@ function subscribePlan(){
   stopSubs();
   if(state.mode!=="shared"||!db)return;
   const base="couples/"+state.code;
-  state.unsub.push(db.doc(base).onSnapshot(s=>{const d=s.data();if(d&&d.home){state.plan.home=d.home;render()}},()=>{}));
+  state.unsub.push(db.doc(base).onSnapshot(s=>{const d=s.data();if(d&&(d.home||d.airport)){state.plan.home=d.home||"";state.plan.airport=d.airport||"";if(document.activeElement?.id!=="home")render()}},()=>{}));
   for(const seat of ["A","B"]){
     state.unsub.push(db.doc(base+"/seats/"+seat).onSnapshot(s=>{state.plan[seat]=s.exists?s.data():null;render()},err=>{toast("Couldn't reach the shared plan: "+(err&&err.message||"try again"))}));
   }
@@ -673,9 +683,10 @@ async function saveSeat(seat,payload){
   }
   state.plan[seat]=payload;LS.set("local",state.plan);return true;
 }
-async function saveHome(h){
-  state.plan.home=h;
-  if(state.mode==="shared"&&db){try{await db.doc("couples/"+state.code).set({home:h,updatedAt:Date.now()})}catch(e){}}
+function airportOf(plan){return (findHub(plan.airport||"")||findHub(plan.home||"")||findHub("Sydney")).name}
+async function saveHome(h,airport){
+  state.plan.home=h;state.plan.airport=airport||airportOf(state.plan);
+  if(state.mode==="shared"&&db){try{await db.doc("couples/"+state.code).set({home:state.plan.home,airport:state.plan.airport,updatedAt:Date.now()})}catch(e){}}
   else LS.set("local",state.plan);
 }
 
@@ -800,7 +811,7 @@ function viewPlan(){
   if(state.mode==="shared")share=`<div class="card share"><div><div class="label">Plan code to send your partner</div><div class="codebox">${esc(state.code)}</div><p class="hint">They open this same page, press Join and type the code. Share the page with them as a Contributor so they can fill in their tag.</p></div><button data-act="copy-code">Copy code</button></div>`;
   let result="";
   if(both){
-    const r=marry(state.plan.A.answers,state.plan.B.answers,state.plan.home);
+    const r=marry(state.plan.A.answers,state.plan.B.answers,airportOf(state.plan));
     state.lastResult=r;
     result=resultsHTML(r,false);
   }else{
@@ -810,7 +821,7 @@ function viewPlan(){
   ${progressHTML()}
   <div class="stack">
     <div class="folder-head"><h2>Your travel folder</h2>
-      <label class="from"><span class="label">Flying from</span><input id="home" list="hub-list" value="${esc(state.plan.home)}" aria-describedby="from-hint"><span class="hint" id="from-hint">Sets flight times and costs.</span></label></div>
+      <div class="from"><label class="label" for="home">Departing from</label><input id="home" value="${esc(state.plan.home)}" placeholder="Home suburb or town" autocomplete="off" enterkeyhint="done"><label class="label" for="airport">Nearest international airport</label><select id="airport">${HUBS.map(h=>`<option${h.name===airportOf(state.plan)?" selected":""}>${esc(h.name)}</option>`).join("")}</select><span class="hint">Flight times and costs are worked out from the airport.</span></div></div>
     <p class="next-step${both?" done":""}"><span class="label">${both?"Done":"Next"}</span><span>${nextStepText()}</span></p>
     ${share}
     <div class="tags">${seatTag("A")}${seatTag("B")}</div>
@@ -836,7 +847,7 @@ function viewForm(){
   const a=state.draft, seat=state.editing, other=seat==="A"?"B":"A", local=state.mode==="local";
   const WANT_TIP=["","Only if it fits","High on my list","I'd be sad never to go"];
   const places=a.places.map((p,i)=>`<div class="place-row" data-i="${i}">
-      <input list="dest-list" data-place="${i}" value="${esc(p.name)}" placeholder="${["e.g. Japan","e.g. Patagonia","e.g. Amalfi Coast","Anywhere else"][Math.min(i,3)]}" aria-label="Place ${i+1}">
+      <div class="ac"><input data-place="${i}" id="place-${i}" value="${esc(p.name)}" placeholder="${["e.g. Japan","e.g. Patagonia","e.g. Amalfi Coast","Anywhere, type freely"][Math.min(i,3)]}" aria-label="Place ${i+1}" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="ac-${i}" autocomplete="off" enterkeyhint="done"><ul class="ac-list" id="ac-${i}" role="listbox" hidden></ul></div>
       <span class="want" role="group" aria-label="How much you want place ${i+1}">${[1,2,3].map(w=>`<button type="button" data-want="${i}" data-w="${w}" aria-pressed="${p.want===w}" title="${WANT_TIP[w]}">${WANT[w]}</button>`).join("")}</span>
       <button type="button" class="small ghost" data-act="rm-place" data-i="${i}" aria-label="Remove place ${i+1}">✕</button>
     </div>`).join("");
@@ -859,9 +870,10 @@ function viewForm(){
       <li>The plan shows which places you both picked. Everything else is labelled "One of you".</li>
       <li>Money and leave only appear as shared totals and ranges, never with a name on them.</li></ul></div></div>
     <div class="field"><label class="label" for="f-name">Your first name</label><input id="f-name" value="${esc(a.name)}" maxlength="30" required aria-describedby="f-name-h"><span class="hint" id="f-name-h">Shown on tag ${seat} so your partner knows you're done. Nothing else is.</span></div>
-    ${step(1,"Places","Countries, regions or cities. Start typing for suggestions, then say how much you want each one.",
+    ${step(1,"Places","Type any place: a country, region, city or island. Suggestions are optional. Then say how much you want each one.",
       `<p class="want-key"><span><b>Curious</b> only if it fits</span><span><b>Want</b> high on my list</span><span><b>Must</b> I'd be sad never to go</span></p><div class="places">${places}</div>
-      ${a.places.length<10?`<div><button type="button" class="small" data-act="add-place">Add a place</button></div>`:""}`)}
+      ${a.places.length<10?`<div><button type="button" class="small" data-act="add-place">Add a place</button></div>`:""}
+      <details class="browse"><summary>Browse the ${DESTS.length} places we can price, A to Z</summary><p class="hint">Tap one to add it. You can also type any place at all; ones not on this list just won't get a cost estimate.</p><div class="browse-list">${DESTS.map(d=>`<button type="button" class="small ghost" data-act="pick-place" data-name="${esc(d.name)}">${esc(d.name)}</button>`).join("")}</div></details>`)}
     ${step(2,"Style","Drag toward the side that sounds more like you. The middle means you don't mind.",`<div class="stack">${sliders}</div>`)}
     ${step(3,"Interests","Pick anything you want more of. Places that offer them move up.",`<div class="chips">${chips}</div>`)}
     ${step(4,"Dealbreakers","Places that clash get parked. The reason shown never says whose dealbreaker it was.",`<div class="chips">${avoids}</div>`)}
@@ -948,7 +960,7 @@ function resultsHTML(r,example){
       <span><span class="pill red">Save N mo</span> over every limit. Months of saving it takes at ${money(r.monthly)} a month.</span>
       <span>${monthsBar([1,2,3,12])} best months, January to December.</span>
       <span><span class="score">Match</span> how strongly your lists and interests point there, out of 100.</span></div>`;
-  const unk=r.unknown.length?`<p class="hint">Not in our reference list yet, so no cost estimate: ${r.unknown.map(u=>esc(u.label)).join(", ")}. Try the country or a nearby region.</p>`:"";
+  const unk=r.unknown.length?`<div class="card unk"><b>Also on your lists, without a cost estimate</b><p class="hint">We can't price these yet, so they're not in the roadmap. Plan them by hand, or add the country or a nearby place we know.</p><div class="row" style="margin-top:8px">${r.unknown.map(u=>`<span class="pill${u.both?" blue":""}">${esc(u.label)} · ${u.both?"both of you":"one of you"}</span>`).join("")}</div></div>`:"";
   const claudeBlock=example?"":`<div class="section"><div class="row" style="justify-content:space-between"><h2>Ask Claude</h2>${state.sampleOK?`<button data-act="ask-claude" ${state.claude.busy?"disabled":""}>${state.claude.busy?"Thinking…":state.claude.text?"Ask again":"Get a second opinion"}</button>`:""}</div>
     ${state.sampleOK?`<p class="hint">Sends only the merged plan above (no one's individual answers) and asks for practical next steps.</p>`:`<p class="hint">Asking Claude isn't available in this view.</p>`}
     ${state.claude.text?`<div class="card claude-out">${esc(state.claude.text)}</div>`:""}${state.claude.err?`<p class="hint" style="color:var(--red)">${esc(state.claude.err)}</p>`:""}</div>`;
@@ -1009,8 +1021,8 @@ function draftKey(){return "draft:"+(state.mode==="shared"?state.code:"local")+"
 
 function openPlan(mode,code){
   state.mode=mode;state.code=code||null;state.claude={busy:false,text:"",err:""};
-  if(mode==="local"){state.plan=LS.get("local",{home:"Sydney",A:null,B:null});state.seat=null}
-  else{state.plan={home:"Sydney",A:null,B:null};state.seat=LS.get("seat:"+code,null)}
+  if(mode==="local"){state.plan=LS.get("local",{home:"",airport:"Sydney",A:null,B:null});state.seat=null}
+  else{state.plan={home:"",airport:"Sydney",A:null,B:null};state.seat=LS.get("seat:"+code,null)}
   LS.set("last",{mode,code});
   state.view="plan";render();subscribePlan();
 }
@@ -1021,7 +1033,7 @@ document.addEventListener("click",async ev=>{
   const act=b.dataset.act;
   if(act==="home"){stopSubs();state.view="home";render();window.scrollTo(0,0)}
   else if(act==="start-local")openPlan("local");
-  else if(act==="start-shared"){const code=genCode();LS.set("seat:"+code,"A");openPlan("shared",code);await saveHome(state.plan.home)}
+  else if(act==="start-shared"){const code=genCode();LS.set("seat:"+code,"A");openPlan("shared",code);await saveHome(state.plan.home,state.plan.airport)}
   else if(act==="join"){const c=(document.getElementById("join-code").value||"").toUpperCase().replace(/[^A-Z0-9]/g,"");if(c.length!==6){toast("Plan codes are 6 letters and numbers.");return}openPlan("shared",c)}
   else if(act==="resume"){const l=LS.get("last",null);if(l)openPlan(l.mode,l.code)}
   else if(act==="plan"){state.view="plan";render()}
@@ -1035,6 +1047,7 @@ document.addEventListener("click",async ev=>{
     if(existing&&state.plan[seat].sealed&&state.mode==="local"){/* re-opening a sealed local tag clears the seal */}
     state.view="form";render();window.scrollTo(0,0);
   }
+  else if(act==="pick-place"){readForm();const nm=b.dataset.name;if(state.draft.places.some(p=>norm(p.name)===norm(nm))){toast(nm+" is already on your list.");return}let slot=state.draft.places.find(p=>!p.name.trim());if(!slot){if(state.draft.places.length>=10){toast("You can list up to 10 places.");return}slot={name:"",want:2};state.draft.places.push(slot)}slot.name=nm;render();const d=document.querySelector("details.browse");if(d)d.open=true;toast(nm+" added")}
   else if(act==="add-place"){readForm();state.draft.places.push({name:"",want:2});render()}
   else if(act==="rm-place"){readForm();state.draft.places.splice(+b.dataset.i,1);if(!state.draft.places.length)state.draft.places.push({name:"",want:2});render()}
   else if(act==="save-draft"){readForm();LS.set(draftKey(),state.draft);const ok=await saveSeat(state.editing,{name:state.draft.name,sealed:false,answers:state.draft,updatedAt:Date.now()});if(ok)toast("Saved. Still hidden from your partner.")}
@@ -1064,8 +1077,49 @@ document.addEventListener("input",ev=>{
   box.querySelectorAll(".end").forEach((e,i)=>e.classList.toggle("on",i===0?v<3:v>3));
 });
 document.addEventListener("change",ev=>{
-  if(ev.target.id==="home"){const h=findHub(ev.target.value);if(!h){toast("Pick a city from the list so flight estimates work.");ev.target.value=state.plan.home;return}saveHome(h.name);render()}
+  if(ev.target.id==="home"){const v=ev.target.value.trim(),h=findHub(v);saveHome(v,h?h.name:airportOf(state.plan));if(h)toast("Using "+h.name+" airport");render()}
+  if(ev.target.id==="airport"){saveHome(state.plan.home,ev.target.value);render()}
 });
+
+/* Place suggestions. Typing is never restricted: suggestions only help spell a
+   place we can price, and the list closes on Escape, Enter, a tap elsewhere,
+   or picking an entry. */
+const AC_INDEX=[...DESTS.map(d=>({label:d.name,name:d.name,key:norm(d.name)})),
+  ...Object.entries(ALIASES).map(([a,n])=>({label:a.replace(/\b\w/g,c=>c.toUpperCase())+" → "+n,name:n,key:norm(a)}))];
+function acMatches(q){const n=norm(q);if(n.length<1)return [];
+  const seen=new Set(),out=[];
+  for(const e of AC_INDEX){if((e.key.startsWith(n)||(n.length>=3&&e.key.includes(n)))&&!seen.has(e.label)){seen.add(e.label);out.push(e)}}
+  return out.sort((a,b)=>a.label.localeCompare(b.label)).slice(0,8)}
+function acClose(inp){const ul=inp&&document.getElementById(inp.getAttribute("aria-controls"));if(ul){ul.hidden=true;ul.innerHTML=""}if(inp){inp.setAttribute("aria-expanded","false");inp.removeAttribute("aria-activedescendant")}}
+function acOpen(inp){
+  const ul=document.getElementById(inp.getAttribute("aria-controls"));if(!ul)return;
+  const q=inp.value.trim(),m=acMatches(q);
+  if(!q||(m.length===1&&norm(m[0].name)===norm(q))){acClose(inp);return}
+  const exact=m.some(e=>norm(e.name)===norm(q));
+  ul.innerHTML=m.map((e,i)=>`<li role="option" id="${ul.id}-${i}" data-name="${esc(e.name)}">${esc(e.label)}</li>`).join("")+(exact?"":`<li role="option" id="${ul.id}-x" class="keep" data-name="${esc(q)}">Keep “${esc(q)}” as typed${m.length?"":" (no cost estimate)"}</li>`);
+  ul.hidden=false;inp.setAttribute("aria-expanded","true");
+}
+function acPick(inp,li){inp.value=li.dataset.name;const a=state.draft;if(a)a.places[+inp.dataset.place].name=inp.value;acClose(inp)}
+function acMove(inp,dir){const ul=document.getElementById(inp.getAttribute("aria-controls"));if(!ul||ul.hidden)return false;
+  const items=[...ul.children];let i=items.findIndex(li=>li.classList.contains("on"));items.forEach(li=>li.classList.remove("on"));
+  i=(i+dir+items.length)%items.length;items[i].classList.add("on");inp.setAttribute("aria-activedescendant",items[i].id);items[i].scrollIntoView({block:"nearest"});return true}
+document.addEventListener("input",ev=>{if(ev.target.dataset&&ev.target.dataset.place!=null)acOpen(ev.target)});
+document.addEventListener("keydown",ev=>{
+  const inp=ev.target;
+  if(inp.id==="home"&&ev.key==="Enter"){ev.preventDefault();inp.blur();return}
+  if(!inp.dataset||inp.dataset.place==null)return;
+  const ul=document.getElementById(inp.getAttribute("aria-controls"));
+  if(ev.key==="ArrowDown"){if(acMove(inp,1))ev.preventDefault()}
+  else if(ev.key==="ArrowUp"){if(acMove(inp,-1))ev.preventDefault()}
+  else if(ev.key==="Escape"){acClose(inp)}
+  else if(ev.key==="Enter"){ev.preventDefault();const on=ul&&!ul.hidden&&ul.querySelector("li.on");if(on)acPick(inp,on);else{acClose(inp);inp.blur()}}
+});
+document.addEventListener("pointerdown",ev=>{
+  const li=ev.target.closest(".ac-list li");
+  if(li){ev.preventDefault();acPick(li.closest(".ac").querySelector("input"),li);return}
+  document.querySelectorAll('[data-place][aria-expanded="true"]').forEach(inp=>{if(!inp.closest(".ac").contains(ev.target))acClose(inp)});
+});
+document.addEventListener("focusout",ev=>{if(ev.target.dataset&&ev.target.dataset.place!=null)setTimeout(()=>acClose(ev.target),120)});
 
 async function askClaude(){
   const r=state.lastResult;if(!r||!state.sample)return;
@@ -1093,8 +1147,6 @@ Write 5 to 7 short, specific recommendations in plain text (no markdown headings
 }
 
 /* boot */
-document.getElementById("dest-list").innerHTML=DESTS.map(d=>`<option value="${esc(d.name)}">`).join("")+Object.keys(ALIASES).map(a=>`<option value="${esc(a.replace(/\b\w/g,c=>c.toUpperCase()))}">`).join("");
-document.getElementById("hub-list").innerHTML=HUBS.map(h=>`<option value="${esc(h.name)}">`).join("");
 render();
 (async()=>{
   if(!window.claude||!window.claude.use)return;
